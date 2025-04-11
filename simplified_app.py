@@ -456,6 +456,9 @@ def display_anomaly_detection():
 
 # Model training page
 def display_model_training():
+    import random
+    from datetime import datetime, timedelta
+    
     st.header("Model Training")
     
     st.info("This page would allow you to train and evaluate machine learning models for anomaly detection and remediation.")
@@ -466,6 +469,21 @@ def display_model_training():
         ["LSTM Autoencoder (Anomaly Detection)", "RL Agent (Chaos)", "RL Agent (Remediation)"]
     )
     
+    # Training parameters in session state to persist values
+    if 'training_params' not in st.session_state:
+        st.session_state.training_params = {
+            'epochs': 100,
+            'batch_size': 32,
+            'learning_rate_lstm': 0.005,
+            'total_timesteps': 50000,
+            'learning_rate_rl': 0.0001,
+            'use_existing': True,
+            'num_samples': 5000,
+            'anomaly_prob': 0.3,
+            'use_local': True,
+            'exploration_rate': 0.2
+        }
+    
     # Training parameters
     st.subheader("Training Parameters")
     
@@ -473,81 +491,179 @@ def display_model_training():
     
     with col1:
         if model_type == "LSTM Autoencoder (Anomaly Detection)":
-            epochs = st.slider("Training Epochs", min_value=10, max_value=500, value=100, step=10)
-            batch_size = st.slider("Batch Size", min_value=8, max_value=128, value=32, step=8)
-            learning_rate = st.select_slider(
+            st.session_state.training_params['epochs'] = st.slider(
+                "Training Epochs", 
+                min_value=10, 
+                max_value=500, 
+                value=st.session_state.training_params['epochs'], 
+                step=10
+            )
+            st.session_state.training_params['batch_size'] = st.slider(
+                "Batch Size", 
+                min_value=8, 
+                max_value=128, 
+                value=st.session_state.training_params['batch_size'], 
+                step=8
+            )
+            st.session_state.training_params['learning_rate_lstm'] = st.select_slider(
                 "Learning Rate",
                 options=[0.001, 0.005, 0.01, 0.05, 0.1],
-                value=0.005
+                value=st.session_state.training_params['learning_rate_lstm']
             )
         else:  # RL Agents
-            total_timesteps = st.slider("Total Timesteps", min_value=1000, max_value=100000, value=50000, step=1000)
-            learning_rate = st.select_slider(
+            st.session_state.training_params['total_timesteps'] = st.slider(
+                "Total Timesteps", 
+                min_value=1000, 
+                max_value=100000, 
+                value=st.session_state.training_params['total_timesteps'], 
+                step=1000
+            )
+            st.session_state.training_params['learning_rate_rl'] = st.select_slider(
                 "Learning Rate",
                 options=[0.0001, 0.0005, 0.001, 0.005],
-                value=0.0001
+                value=st.session_state.training_params['learning_rate_rl']
             )
     
     with col2:
         st.write("**Data Configuration**")
         if model_type == "LSTM Autoencoder (Anomaly Detection)":
-            use_existing = st.checkbox("Use existing data", value=True)
-            if not use_existing:
-                num_samples = st.slider("Generate samples", min_value=1000, max_value=10000, value=5000, step=1000)
-                anomaly_prob = st.slider("Anomaly probability", min_value=0.1, max_value=0.5, value=0.3, step=0.05)
+            st.session_state.training_params['use_existing'] = st.checkbox(
+                "Use existing data", 
+                value=st.session_state.training_params['use_existing']
+            )
+            if not st.session_state.training_params['use_existing']:
+                st.session_state.training_params['num_samples'] = st.slider(
+                    "Generate samples", 
+                    min_value=1000, 
+                    max_value=10000, 
+                    value=st.session_state.training_params['num_samples'], 
+                    step=1000
+                )
+                st.session_state.training_params['anomaly_prob'] = st.slider(
+                    "Anomaly probability", 
+                    min_value=0.1, 
+                    max_value=0.5, 
+                    value=st.session_state.training_params['anomaly_prob'], 
+                    step=0.05
+                )
         else:
-            use_local = st.checkbox("Use LocalStack for training", value=True)
-            exploration_rate = st.slider("Exploration rate", min_value=0.1, max_value=0.5, value=0.2, step=0.05)
+            st.session_state.training_params['use_local'] = st.checkbox(
+                "Use LocalStack for training", 
+                value=st.session_state.training_params['use_local']
+            )
+            st.session_state.training_params['exploration_rate'] = st.slider(
+                "Exploration rate", 
+                min_value=0.1, 
+                max_value=0.5, 
+                value=st.session_state.training_params['exploration_rate'], 
+                step=0.05
+            )
+    
+    # Container for training logs
+    training_log_container = st.empty()
     
     # Training button
     if st.button("Start Training"):
-        # Mock training progress
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        for i in range(101):
-            # Update progress bar
-            progress_bar.progress(i / 100)
+        # Create a container for training logs
+        with st.expander("Training Logs", expanded=True):
+            log_output = st.empty()
+            progress_bar = st.progress(0)
+            status_text = st.empty()
             
-            # Update status text (different based on model type)
-            if model_type == "LSTM Autoencoder (Anomaly Detection)":
-                status_text.text(f"Training epoch {i} of 100, loss: {1.0 - (i/150):.4f}")
-            else:
-                status_text.text(f"Training timestep {i*500} of 50000, reward: {i/50:.2f}")
+            # Initialize log data
+            logs = []
             
-            # Add small delay to simulate training
-            time.sleep(0.05)
-        
-        # Training complete
-        status_text.success("Training complete!")
+            # Simulate training process
+            total_iters = 100
+            
+            for i in range(total_iters + 1):
+                # Update progress bar
+                progress = i / total_iters
+                progress_bar.progress(progress)
+                
+                # Generate log entry
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                
+                if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                    epoch = i
+                    max_epochs = st.session_state.training_params['epochs']
+                    loss = 1.0 - (i/150)
+                    val_loss = loss * (1 + random.uniform(-0.1, 0.1))
+                    
+                    log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f}"
+                    status_text.text(f"Training epoch {epoch} of {max_epochs}, loss: {loss:.4f}")
+                else:
+                    timestep = i * 500
+                    max_timesteps = st.session_state.training_params['total_timesteps']
+                    reward = i/50
+                    entropy = random.uniform(0.1, 0.8)
+                    
+                    log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - reward: {reward:.2f} - entropy: {entropy:.2f}"
+                    status_text.text(f"Training timestep {timestep} of {max_timesteps}, reward: {reward:.2f}")
+                
+                logs.append(log_entry)
+                
+                # Display all logs
+                log_output.code("\n".join(logs))
+                
+                # Add small delay to simulate training
+                time.sleep(0.05)
+            
+            # Training complete
+            status_text.success("Training complete!")
         
         # Show mock evaluation results
         st.subheader("Training Results")
         
-        if model_type == "LSTM Autoencoder (Anomaly Detection)":
-            st.json({
-                "final_loss": 0.0342,
-                "val_loss": 0.0387,
-                "training_time": "1m 24s",
-                "anomaly_threshold": 0.1,
-                "evaluation": {
-                    "accuracy": 0.92,
-                    "precision": 0.89,
-                    "recall": 0.86,
-                    "f1_score": 0.87
-                }
-            })
-        else:
-            st.json({
-                "mean_reward": 42.7,
-                "max_reward": 67.3,
-                "training_time": "4m 12s",
-                "successful_remediations": 89,
-                "evaluation": {
-                    "average_return": 38.9,
-                    "success_rate": 0.82
-                }
-            })
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Performance Metrics")
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                st.json({
+                    "final_loss": 0.0342,
+                    "val_loss": 0.0387,
+                    "training_time": "1m 24s",
+                    "anomaly_threshold": 0.1,
+                    "evaluation": {
+                        "accuracy": 0.92,
+                        "precision": 0.89,
+                        "recall": 0.86,
+                        "f1_score": 0.87
+                    }
+                })
+            else:
+                st.json({
+                    "mean_reward": 42.7,
+                    "max_reward": 67.3,
+                    "training_time": "4m 12s",
+                    "successful_remediations": 89,
+                    "evaluation": {
+                        "average_return": 38.9,
+                        "success_rate": 0.82
+                    }
+                })
+        
+        with col2:
+            st.subheader("Training Configuration Used")
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                st.json({
+                    "model_type": model_type,
+                    "epochs": st.session_state.training_params['epochs'],
+                    "batch_size": st.session_state.training_params['batch_size'],
+                    "learning_rate": st.session_state.training_params['learning_rate_lstm'],
+                    "use_existing_data": st.session_state.training_params['use_existing'],
+                    "num_samples": st.session_state.training_params['num_samples'] if not st.session_state.training_params['use_existing'] else "N/A",
+                    "anomaly_probability": st.session_state.training_params['anomaly_prob'] if not st.session_state.training_params['use_existing'] else "N/A"
+                })
+            else:
+                st.json({
+                    "model_type": model_type,
+                    "total_timesteps": st.session_state.training_params['total_timesteps'],
+                    "learning_rate": st.session_state.training_params['learning_rate_rl'],
+                    "use_localstack": st.session_state.training_params['use_local'],
+                    "exploration_rate": st.session_state.training_params['exploration_rate']
+                })
 
 # Logs and analysis page
 def display_logs_analysis():
