@@ -457,6 +457,8 @@ def display_anomaly_detection():
 # Model training page
 def display_model_training():
     import random
+    import math
+    import numpy as np
     from datetime import datetime, timedelta
     
     st.header("Model Training")
@@ -481,89 +483,353 @@ def display_model_training():
             'num_samples': 5000,
             'anomaly_prob': 0.3,
             'use_local': True,
-            'exploration_rate': 0.2
+            'exploration_rate': 0.2,
+            'is_validated': False
         }
+    
+    # Helper for real-time parameter feedback
+    def get_parameter_assessment(param_name, param_value):
+        """Generate real-time feedback for parameter values"""
+        assessments = {
+            'epochs': {
+                'low': "Few epochs may lead to underfitting. Training will be quick but model might not learn patterns well.",
+                'medium': "Good balance between training time and model performance.",
+                'high': "Many epochs may lead to longer training time, but could improve accuracy. Watch for overfitting."
+            },
+            'batch_size': {
+                'low': "Small batch size provides more stochastic gradient updates but may be slower and less stable.",
+                'medium': "Good balance between training speed and gradient precision.",
+                'high': "Large batch size speeds up training but may reduce model generalization ability."
+            },
+            'learning_rate_lstm': {
+                'low': "Low learning rate ensures stable training but converges slowly.",
+                'medium': "Balanced learning rate for good convergence speed.",
+                'high': "High learning rate may converge quickly but risks overshooting the optimal solution."
+            },
+            'learning_rate_rl': {
+                'low': "Low learning rate helps agent learn stable policies but requires more training steps.",
+                'medium': "Balanced learning rate for good policy learning.",
+                'high': "High learning rate allows faster exploration but may result in unstable policies."
+            },
+            'total_timesteps': {
+                'low': "Few timesteps may not allow the agent to fully explore the environment.",
+                'medium': "Sufficient timesteps for moderately complex environments.",
+                'high': "Many timesteps allow thorough environment exploration but take longer to train."
+            },
+            'exploration_rate': {
+                'low': "Low exploration rate favors exploitation over exploration, may miss optimal policies.",
+                'medium': "Balanced exploration vs. exploitation trade-off.",
+                'high': "High exploration rate encourages discovering diverse strategies but may be inefficient."
+            },
+            'anomaly_prob': {
+                'low': "Few anomalies make detection harder but dataset more realistic.",
+                'medium': "Balanced anomaly distribution for good training.",
+                'high': "Many anomalies may make detection easier but less representative of real scenarios."
+            },
+            'num_samples': {
+                'low': "Few samples may limit model's learning ability.",
+                'medium': "Sufficient data for moderate complexity modeling.",
+                'high': "Large dataset improves learning but increases training time."
+            }
+        }
+        
+        thresholds = {
+            'epochs': [50, 200],
+            'batch_size': [16, 64],
+            'learning_rate_lstm': [0.001, 0.01],
+            'learning_rate_rl': [0.0001, 0.001],
+            'total_timesteps': [10000, 50000],
+            'exploration_rate': [0.15, 0.3],
+            'anomaly_prob': [0.15, 0.35],
+            'num_samples': [2000, 8000]
+        }
+        
+        if param_name in thresholds:
+            low, high = thresholds[param_name]
+            level = 'low' if param_value < low else 'high' if param_value > high else 'medium'
+            return assessments[param_name][level]
+        return ""
+    
+    # Generate impact prediction based on parameter combination
+    def predict_training_impact(params, model_type):
+        """Predict the impact of parameter combinations on training"""
+        if model_type == "LSTM Autoencoder (Anomaly Detection)":
+            # Key factors for LSTM: learning rate, epochs, batch size
+            lr = params['learning_rate_lstm']
+            epochs = params['epochs']
+            batch = params['batch_size']
+            
+            # Calculate predicted training time (arbitrary formula for demo)
+            est_time_mins = math.ceil((epochs * 5000) / (batch * 1000) * (1 + lr * 10))
+            
+            # Calculate predicted performance metrics
+            est_accuracy = min(0.95, 0.75 + (epochs/500) * 0.1 + (lr/0.01) * 0.05)
+            est_f1 = est_accuracy - random.uniform(0.02, 0.08)
+            
+            # Risk assessment
+            overfitting_risk = "Low"
+            if epochs > 200 and batch < 32:
+                overfitting_risk = "Moderate"
+            elif epochs > 300 and batch < 16:
+                overfitting_risk = "High"
+            
+            # Generate recommendation
+            recommendation = ""
+            if epochs < 50:
+                recommendation = "Consider increasing epochs for better learning."
+            elif lr > 0.05:
+                recommendation = "Consider reducing learning rate for more stable training."
+            elif batch > 64 and epochs > 200:
+                recommendation = "Large batch size with many epochs may lead to overfitting."
+            else:
+                recommendation = "Parameter configuration looks balanced."
+                
+            return {
+                "est_training_time": f"{est_time_mins} minutes",
+                "est_accuracy": f"{est_accuracy:.2f}",
+                "est_f1_score": f"{est_f1:.2f}",
+                "overfitting_risk": overfitting_risk,
+                "recommendation": recommendation
+            }
+            
+        else:  # RL Agents
+            # Key factors: timesteps, learning rate, exploration rate
+            timesteps = params['total_timesteps']
+            lr = params['learning_rate_rl']
+            exploration = params['exploration_rate']
+            
+            # Calculate predicted training time
+            est_time_mins = math.ceil(timesteps / 12000)
+            
+            # Initialize risk variables to avoid "possibly unbound" errors
+            instability_risk = "Low"
+            inefficiency_risk = "Low"
+            
+            # Different metrics for chaos vs remediation
+            if model_type == "RL Agent (Chaos)":
+                # Chaos: higher exploration = better for finding disruptions
+                est_success = min(0.9, 0.6 + (timesteps/100000) * 0.2 + exploration * 0.3)
+                est_mean_reward = 30 + (timesteps/10000) * 5 + exploration * 40
+                
+                # Risk assessment
+                instability_risk = "Low"
+                if exploration > 0.4:
+                    instability_risk = "Moderate"
+                elif exploration > 0.45 and lr > 0.001:
+                    instability_risk = "High"
+                
+                # Generate recommendation
+                if timesteps < 10000:
+                    recommendation = "Consider increasing timesteps for more thorough exploration."
+                elif exploration < 0.15:
+                    recommendation = "Consider increasing exploration rate to find more diverse disruptions."
+                elif lr > 0.001 and exploration > 0.4:
+                    recommendation = "High exploration with high learning rate may lead to unstable training."
+                else:
+                    recommendation = "Parameter configuration looks suitable for chaos agent."
+                    
+            else:  # Remediation
+                # Remediation: lower exploration = better for focused remediation
+                est_success = min(0.95, 0.65 + (timesteps/100000) * 0.25 + (0.5 - exploration) * 0.2)
+                est_mean_reward = 35 + (timesteps/10000) * 6 + (0.5 - exploration) * 20
+                
+                # Risk assessment
+                inefficiency_risk = "Low"
+                if exploration < 0.15:
+                    inefficiency_risk = "Moderate"
+                elif exploration < 0.1 and timesteps < 20000:
+                    inefficiency_risk = "High"
+                
+                # Generate recommendation
+                if timesteps < 10000:
+                    recommendation = "Consider increasing timesteps for more thorough remediation learning."
+                elif exploration > 0.35:
+                    recommendation = "Consider reducing exploration rate for more focused remediation."
+                elif lr < 0.0001 and timesteps < 30000:
+                    recommendation = "Low learning rate with few timesteps may result in slow convergence."
+                else:
+                    recommendation = "Parameter configuration looks suitable for remediation agent."
+            
+            return {
+                "est_training_time": f"{est_time_mins} minutes",
+                "est_success_rate": f"{est_success:.2f}",
+                "est_mean_reward": f"{est_mean_reward:.1f}",
+                "stability_risk": instability_risk if model_type == "RL Agent (Chaos)" else inefficiency_risk,
+                "recommendation": recommendation
+            }
     
     # Training parameters
     st.subheader("Training Parameters")
+    
+    # Add parameter validation toggle
+    enable_validation = st.toggle("Enable Real-time Parameter Validation", value=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
         if model_type == "LSTM Autoencoder (Anomaly Detection)":
-            st.session_state.training_params['epochs'] = st.slider(
+            epochs = st.slider(
                 "Training Epochs", 
                 min_value=10, 
                 max_value=500, 
                 value=st.session_state.training_params['epochs'], 
-                step=10
+                step=10,
+                help="Number of complete passes through the training dataset"
             )
-            st.session_state.training_params['batch_size'] = st.slider(
+            if enable_validation:
+                st.info(get_parameter_assessment('epochs', epochs))
+            st.session_state.training_params['epochs'] = epochs
+            
+            batch_size = st.slider(
                 "Batch Size", 
                 min_value=8, 
                 max_value=128, 
                 value=st.session_state.training_params['batch_size'], 
-                step=8
+                step=8,
+                help="Number of samples processed before model weights are updated"
             )
-            st.session_state.training_params['learning_rate_lstm'] = st.select_slider(
+            if enable_validation:
+                st.info(get_parameter_assessment('batch_size', batch_size))
+            st.session_state.training_params['batch_size'] = batch_size
+            
+            learning_rate = st.select_slider(
                 "Learning Rate",
                 options=[0.001, 0.005, 0.01, 0.05, 0.1],
-                value=st.session_state.training_params['learning_rate_lstm']
+                value=st.session_state.training_params['learning_rate_lstm'],
+                help="Step size for weight updates during training"
             )
+            if enable_validation:
+                st.info(get_parameter_assessment('learning_rate_lstm', learning_rate))
+            st.session_state.training_params['learning_rate_lstm'] = learning_rate
+            
         else:  # RL Agents
-            st.session_state.training_params['total_timesteps'] = st.slider(
+            timesteps = st.slider(
                 "Total Timesteps", 
                 min_value=1000, 
                 max_value=100000, 
                 value=st.session_state.training_params['total_timesteps'], 
-                step=1000
+                step=1000,
+                help="Total number of steps the agent will interact with the environment"
             )
-            st.session_state.training_params['learning_rate_rl'] = st.select_slider(
+            if enable_validation:
+                st.info(get_parameter_assessment('total_timesteps', timesteps))
+            st.session_state.training_params['total_timesteps'] = timesteps
+            
+            learning_rate = st.select_slider(
                 "Learning Rate",
                 options=[0.0001, 0.0005, 0.001, 0.005],
-                value=st.session_state.training_params['learning_rate_rl']
+                value=st.session_state.training_params['learning_rate_rl'],
+                help="Step size for policy updates during training"
             )
+            if enable_validation:
+                st.info(get_parameter_assessment('learning_rate_rl', learning_rate))
+            st.session_state.training_params['learning_rate_rl'] = learning_rate
+            
+            exploration = st.slider(
+                "Exploration Rate", 
+                min_value=0.1, 
+                max_value=0.5, 
+                value=st.session_state.training_params['exploration_rate'], 
+                step=0.05,
+                help="Controls the trade-off between exploration (trying new actions) and exploitation (using known good actions)"
+            )
+            if enable_validation:
+                st.info(get_parameter_assessment('exploration_rate', exploration))
+            st.session_state.training_params['exploration_rate'] = exploration
     
     with col2:
         st.write("**Data Configuration**")
         if model_type == "LSTM Autoencoder (Anomaly Detection)":
-            st.session_state.training_params['use_existing'] = st.checkbox(
+            use_existing = st.checkbox(
                 "Use existing data", 
-                value=st.session_state.training_params['use_existing']
+                value=st.session_state.training_params['use_existing'],
+                help="Use pre-collected environment state data instead of generating new samples"
             )
-            if not st.session_state.training_params['use_existing']:
-                st.session_state.training_params['num_samples'] = st.slider(
+            st.session_state.training_params['use_existing'] = use_existing
+            
+            if not use_existing:
+                num_samples = st.slider(
                     "Generate samples", 
                     min_value=1000, 
                     max_value=10000, 
                     value=st.session_state.training_params['num_samples'], 
-                    step=1000
+                    step=1000,
+                    help="Number of synthetic samples to generate for training"
                 )
-                st.session_state.training_params['anomaly_prob'] = st.slider(
+                if enable_validation:
+                    st.info(get_parameter_assessment('num_samples', num_samples))
+                st.session_state.training_params['num_samples'] = num_samples
+                
+                anomaly_prob = st.slider(
                     "Anomaly probability", 
                     min_value=0.1, 
                     max_value=0.5, 
                     value=st.session_state.training_params['anomaly_prob'], 
-                    step=0.05
+                    step=0.05,
+                    help="Probability of generating anomalous (vs normal) samples in the dataset"
                 )
+                if enable_validation:
+                    st.info(get_parameter_assessment('anomaly_prob', anomaly_prob))
+                st.session_state.training_params['anomaly_prob'] = anomaly_prob
         else:
-            st.session_state.training_params['use_local'] = st.checkbox(
+            use_local = st.checkbox(
                 "Use LocalStack for training", 
-                value=st.session_state.training_params['use_local']
+                value=st.session_state.training_params['use_local'],
+                help="Use LocalStack for simulating AWS environment instead of real AWS resources"
             )
-            st.session_state.training_params['exploration_rate'] = st.slider(
-                "Exploration rate", 
-                min_value=0.1, 
-                max_value=0.5, 
-                value=st.session_state.training_params['exploration_rate'], 
-                step=0.05
-            )
+            st.session_state.training_params['use_local'] = use_local
+        
+        # Add parameter validation feedback
+        if enable_validation:
+            st.subheader("Parameter Impact Analysis")
+            impact = predict_training_impact(st.session_state.training_params, model_type)
+            
+            # Show impact with visual indicators
+            st.write("**Estimated Training Time:**", impact["est_training_time"])
+            
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                # For LSTM, show accuracy metrics
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Est. Accuracy", impact["est_accuracy"])
+                with col2:
+                    st.metric("Est. F1 Score", impact["est_f1_score"])
+                
+                st.write("**Overfitting Risk:**", impact["overfitting_risk"])
+            else:
+                # For RL, show reward metrics
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Est. Success Rate", impact["est_success_rate"])
+                with col2:
+                    st.metric("Est. Mean Reward", impact["est_mean_reward"])
+                
+                risk_label = "Instability Risk" if model_type == "RL Agent (Chaos)" else "Inefficiency Risk"
+                st.write(f"**{risk_label}:**", impact["stability_risk"])
+            
+            # Recommendation
+            st.info(f"💡 **Recommendation:** {impact['recommendation']}")
+            
+            # Parameter validation button
+            if st.button("Validate Parameters"):
+                st.session_state.training_params['is_validated'] = True
+                st.success("✅ Parameters validated! You can now proceed with training.")
+                st.balloons()
     
     # Container for training logs
     training_log_container = st.empty()
     
-    # Training button
-    if st.button("Start Training"):
+    # Training button with validation check
+    train_button_disabled = enable_validation and not st.session_state.training_params['is_validated']
+    train_button_label = "Start Training"
+    
+    if train_button_disabled:
+        train_button_label = "Validate Parameters First"
+        st.warning("⚠️ Please validate your parameters before starting training")
+    
+    start_training = st.button(train_button_label, disabled=train_button_disabled)
+    
+    if start_training:
         # Create a container for training logs
         with st.expander("Training Logs", expanded=True):
             log_output = st.empty()
