@@ -1,0 +1,99 @@
+MVP Requirement Document: Automating Chaos Simulation on AWS
+1. Executive Summary
+A system that proactively tests AWS infrastructure resilience and security through controlled chaos simulation, using LocalStack for isolation, with automated remediation capabilities.
+
+2. Problem Statement
+Organizations need to proactively identify infrastructure vulnerabilities and security weaknesses before they impact production environments, but lack automated tools to safely simulate and remediate these issues.
+
+3. Target Users
+DevOps engineers
+Security teams
+Cloud infrastructure managers
+Compliance officers
+4. Core Value Proposition
+Safely simulate infrastructure and security failures in isolated environments, automatically detect anomalies, and remediate issues before they impact production systems.
+
+5. MVP Feature Requirements (Prioritized)
+Must-Have Features
+Isolated Testing Environment
+LocalStack integration for AWS service simulation
+Docker containerization for security isolation
+Chaos Simulation Engine
+37 RL-driven security experiments
+Anomaly detection via LSTM Autoencoder
+State collection and monitoring
+Remediation System
+Automated issue detection and remediation
+Self-healing capabilities for identified vulnerabilities
+Approval Workflow
+Flask/Slack integration for authorization
+User approval gates before chaos execution
+Monitoring Dashboard
+Grafana integration for real-time metrics
+Security-focused visualization
+Future Features (Post-MVP)
+Advanced AI-driven attack pattern recognition
+Extended remediation capabilities
+Integration with additional cloud providers
+Enhanced compliance reporting
+6. Technical Requirements
+Functional Requirements
+State Collection System
+Collect 500 environment states with 25 data points per state
+Generate synthetic states based on collected data
+Store states for model training
+LSTM Autoencoder (PVM)
+Train on normal and abnormal states
+Calculate anomaly scores in real-time
+Identify deviations from normal patterns
+Chaos Agent
+Select from 37 possible disruptive actions
+Execute actions based on environment state
+Record action results and state changes
+Remediation Agent
+Select from 37 possible remediation actions
+Execute based on anomaly scores
+Revert to previous state if remediation fails
+Orchestration System
+Manage workflow between chaos and remediation
+Implement approval gates
+Push metrics to Prometheus/Grafana
+Non-Functional Requirements
+Security
+Complete isolation from production environments
+Secure storage of collected data
+Role-based access controls
+Performance
+Real-time anomaly detection (<5s)
+Rapid remediation response (<30s)
+Usability
+Intuitive dashboard for monitoring
+Clear approval workflow
+Comprehensive logging
+7. Success Metrics
+Number of vulnerabilities detected
+Remediation success rate
+Time to detect anomalies
+Time to remediate issues
+User satisfaction with approval workflow
+8. Development Timeline
+Environment setup and LocalStack integration: 2 weeks
+State collection system: 3 weeks
+LSTM Autoencoder development: 4 weeks
+Chaos Agent implementation: 3 weeks
+Remediation Agent implementation: 3 weeks
+Orchestration and approval workflow: 2 weeks
+Dashboard and monitoring: 2 weeks
+Testing and refinement: 3 weeks
+9. Risks and Mitigations
+Risk: Chaos simulations impact production
+Mitigation: Strict isolation via LocalStack
+Risk: False positives in anomaly detection
+Mitigation: Tunable thresholds and human approval gates
+Risk: Remediation actions cause further issues
+Mitigation: State rollback capabilities and incremental approach
+10. Appendix
+Detailed state vector specifications
+List of 37 chaos actions
+List of 37 remediation actions
+Technical architecture diagram
