@@ -443,6 +443,7 @@ def display_anomaly_detection():
     
     # Generate mock anomaly data
     import random
+    from datetime import datetime, timedelta
     dates = [datetime.now() - timedelta(hours=i) for i in range(48, 0, -1)]
     anomaly_scores = [random.uniform(0.01, 0.08) for _ in range(40)] + [random.uniform(0.15, 0.3) for _ in range(8)]
     
@@ -550,6 +551,8 @@ def display_model_training():
 
 # Logs and analysis page
 def display_logs_analysis():
+    from datetime import datetime, timedelta
+    
     st.header("Logs & Analysis")
     
     st.info("This page would display logs and analysis of chaos experiments and remediation actions.")
