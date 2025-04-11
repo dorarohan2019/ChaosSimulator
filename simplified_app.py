@@ -227,7 +227,7 @@ def display_dashboard():
                 import random
                 st.session_state.metrics_history[key].append(random.uniform(0.01, 0.2))
         
-        st.experimental_rerun()
+        st.rerun()
     
     # Live metrics chart
     st.subheader("Live Metrics")
@@ -277,7 +277,7 @@ def display_chaos_simulation():
             if st.button("Request Simulation Approval"):
                 st.session_state.approval_requested = True
                 st.success("Approval requested. Please confirm to proceed.")
-                st.experimental_rerun()
+                st.rerun()
     
     with col2:
         st.subheader("Status")
@@ -297,12 +297,12 @@ def display_chaos_simulation():
         with confirm_col1:
             if st.button("✅ Approve Simulation"):
                 st.session_state.simulation_running = True
-                st.experimental_rerun()
+                st.rerun()
         
         with confirm_col2:
             if st.button("❌ Deny Simulation"):
                 st.session_state.approval_requested = False
-                st.experimental_rerun()
+                st.rerun()
     
     # Run simulation if approved
     if st.session_state.simulation_running:
@@ -404,7 +404,7 @@ def display_chaos_simulation():
             if 'current_step' in st.session_state:
                 del st.session_state.current_step
             
-            st.experimental_rerun()
+            st.rerun()
         
         except Exception as e:
             st.error(f"Simulation error: {str(e)}")
