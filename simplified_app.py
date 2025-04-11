@@ -573,9 +573,43 @@ def display_model_training():
             # Initialize log data
             logs = []
             
-            # Simulate training process
-            total_iters = 100
+            # Simulate training process using the actual parameters provided
+            # Calculate total iterations based on parameters
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                total_iters = min(st.session_state.training_params['epochs'], 100)  # Limit to 100 for demo
+                batch_size = st.session_state.training_params['batch_size']
+                learning_rate = st.session_state.training_params['learning_rate_lstm']
+                
+                # Display configuration being used
+                log_output.info(f"Starting training with parameters: epochs={total_iters}, batch_size={batch_size}, learning_rate={learning_rate}")
+                if st.session_state.training_params['use_existing']:
+                    log_output.info("Using existing dataset for training")
+                else:
+                    sample_count = st.session_state.training_params['num_samples']
+                    anomaly_prob = st.session_state.training_params['anomaly_prob']
+                    log_output.info(f"Generating {sample_count} samples with anomaly probability {anomaly_prob}")
+            else:
+                # Limit to 100 iterations for demo while respecting the timestep scale
+                total_iters = min(st.session_state.training_params['total_timesteps'] // 500, 100)
+                learning_rate = st.session_state.training_params['learning_rate_rl']
+                exploration_rate = st.session_state.training_params['exploration_rate']
+                is_chaos = model_type == "RL Agent (Chaos)"
+                
+                # Display configuration being used
+                log_output.info(f"Starting {model_type} training with parameters:")
+                log_output.info(f"Total timesteps: {st.session_state.training_params['total_timesteps']}")
+                log_output.info(f"Learning rate: {learning_rate}")
+                log_output.info(f"Exploration rate: {exploration_rate}")
+                if st.session_state.training_params['use_local']:
+                    log_output.info("Using LocalStack for environment simulation")
             
+            # Initial values for metrics
+            best_loss = float('inf')
+            best_reward = float('-inf') if model_type == "RL Agent (Chaos)" else float('-inf')
+            anomaly_scores = []
+            rewards = []
+            
+            # Progress tracking
             for i in range(total_iters + 1):
                 # Update progress bar
                 progress = i / total_iters
@@ -585,29 +619,100 @@ def display_model_training():
                 timestamp = datetime.now().strftime("%H:%M:%S")
                 
                 if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                    # LSTM Autoencoder training - goal is to minimize reconstruction error
                     epoch = i
-                    max_epochs = st.session_state.training_params['epochs']
-                    loss = 1.0 - (i/150)
+                    max_epochs = total_iters
+                    
+                    # Simulate batch training
+                    batch_losses = []
+                    for b in range(5):  # Simulate 5 batches per epoch
+                        batch_loss = max(0.01, 1.0 - (i/(total_iters * 0.8)) + random.uniform(-0.05, 0.05))
+                        batch_losses.append(batch_loss)
+                    
+                    # Overall epoch metrics
+                    loss = sum(batch_losses) / len(batch_losses)
                     val_loss = loss * (1 + random.uniform(-0.1, 0.1))
                     
-                    log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f}"
+                    # Track best model
+                    if val_loss < best_loss:
+                        best_loss = val_loss
+                        log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f} - ✓ New best model saved"
+                    else:
+                        log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f}"
+                    
                     status_text.text(f"Training epoch {epoch} of {max_epochs}, loss: {loss:.4f}")
                 else:
+                    # RL Agent training
                     timestep = i * 500
                     max_timesteps = st.session_state.training_params['total_timesteps']
-                    reward = i/50
-                    entropy = random.uniform(0.1, 0.8)
                     
-                    log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - reward: {reward:.2f} - entropy: {entropy:.2f}"
+                    # Different reward functions for chaos vs remediation
+                    if model_type == "RL Agent (Chaos)":
+                        # For chaos: Higher anomaly score = better reward (maximizing disruption)
+                        anomaly_score = min(0.8, (i/total_iters) * exploration_rate + random.uniform(-0.05, 0.05))
+                        # Reward increases as anomaly score increases
+                        reward = anomaly_score * 10
+                        # Occasional failed attempts
+                        if random.random() < 0.1:
+                            reward = -2.0  # Failed attempts get negative rewards
+                            log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f} - Action failed!"
+                        else:
+                            log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f}"
+                    else:  # Remediation
+                        # For remediation: Lower anomaly score = better reward (fixing issues)
+                        # Start with high anomaly scores that get reduced over time
+                        initial_anomaly = 0.7 - (0.3 * random.random())
+                        anomaly_score = max(0.05, initial_anomaly - (i/total_iters) * exploration_rate)
+                        # Reward increases as anomaly score decreases
+                        reward = (1 - anomaly_score) * 10
+                        # Occasional failed attempts
+                        if random.random() < 0.1:
+                            reward = -2.0  # Failed attempts get negative rewards
+                            log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f} - Remediation failed!"
+                        else:
+                            log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f}"
+                    
+                    # Track metrics
+                    anomaly_scores.append(anomaly_score)
+                    rewards.append(reward)
+                    
+                    # Track best model
+                    if (model_type == "RL Agent (Chaos)" and reward > best_reward) or \
+                       (model_type == "RL Agent (Remediation)" and reward > best_reward):
+                        best_reward = reward
+                        log_entry += " - ✓ New best model saved"
+                    
                     status_text.text(f"Training timestep {timestep} of {max_timesteps}, reward: {reward:.2f}")
                 
                 logs.append(log_entry)
                 
-                # Display all logs
-                log_output.code("\n".join(logs))
+                # Keep only the last 20 logs to prevent UI slowdown
+                if len(logs) > 20:
+                    display_logs = [logs[0]] + ["..."] + logs[-19:]
+                else:
+                    display_logs = logs
+                
+                # Display logs
+                log_output.code("\n".join(display_logs))
                 
                 # Add small delay to simulate training
                 time.sleep(0.05)
+                
+            # At the end, show a summary of the training
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                log_output.success(f"Training complete! Best validation loss: {best_loss:.4f}")
+            else:
+                avg_reward = sum(rewards) / len(rewards) if rewards else 0
+                log_output.success(f"Training complete! Best reward: {best_reward:.2f}, Average reward: {avg_reward:.2f}")
+                
+                # Display a trend chart of performance
+                if len(rewards) > 5:
+                    with st.expander("Training Metrics Trend", expanded=True):
+                        metrics_chart_data = {
+                            "reward": rewards,
+                            "anomaly_score": anomaly_scores
+                        }
+                        st.line_chart(metrics_chart_data)
             
             # Training complete
             status_text.success("Training complete!")
