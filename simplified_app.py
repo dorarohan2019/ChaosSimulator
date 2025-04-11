@@ -646,6 +646,9 @@ def display_model_training():
                     timestep = i * 500
                     max_timesteps = st.session_state.training_params['total_timesteps']
                     
+                    # Get exploration rate from parameters
+                    exploration_rate = st.session_state.training_params['exploration_rate']
+                    
                     # Different reward functions for chaos vs remediation
                     if model_type == "RL Agent (Chaos)":
                         # For chaos: Higher anomaly score = better reward (maximizing disruption)
@@ -707,12 +710,13 @@ def display_model_training():
                 
                 # Display a trend chart of performance
                 if len(rewards) > 5:
-                    with st.expander("Training Metrics Trend", expanded=True):
-                        metrics_chart_data = {
-                            "reward": rewards,
-                            "anomaly_score": anomaly_scores
-                        }
-                        st.line_chart(metrics_chart_data)
+                    # Display training metrics chart outside the expander
+                    st.subheader("Training Metrics Trend")
+                    metrics_chart_data = {
+                        "reward": rewards,
+                        "anomaly_score": anomaly_scores
+                    }
+                    st.line_chart(metrics_chart_data)
             
             # Training complete
             status_text.success("Training complete!")
