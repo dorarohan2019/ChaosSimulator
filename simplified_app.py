@@ -840,40 +840,98 @@ def display_model_training():
             logs = []
             
             # Simulate training process using the actual parameters provided
-            # Calculate total iterations based on parameters
+            # Extract all parameters from session state
+            epochs = st.session_state.training_params['epochs']
+            batch_size = st.session_state.training_params['batch_size']
+            learning_rate_lstm = st.session_state.training_params['learning_rate_lstm']
+            total_timesteps = st.session_state.training_params['total_timesteps']
+            learning_rate_rl = st.session_state.training_params['learning_rate_rl']
+            exploration_rate = st.session_state.training_params['exploration_rate']
+            use_existing = st.session_state.training_params['use_existing']
+            num_samples = st.session_state.training_params['num_samples']
+            anomaly_prob = st.session_state.training_params['anomaly_prob']
+            use_local = st.session_state.training_params['use_local']
+            
+            # Calculate iterations based on parameters (with reasonable limits for UI responsiveness)
+            # We'll scale down for demo purposes but preserve the ratio
             if model_type == "LSTM Autoencoder (Anomaly Detection)":
-                total_iters = min(st.session_state.training_params['epochs'], 100)  # Limit to 100 for demo
-                batch_size = st.session_state.training_params['batch_size']
-                learning_rate = st.session_state.training_params['learning_rate_lstm']
+                # Use actual epochs but cap at 100 for demo
+                total_iters = min(epochs, 100)
+                # Scale factors to make the simulation reflect parameter changes
+                learning_factor = learning_rate_lstm * 20  # Higher rate = faster convergence
+                batch_factor = batch_size / 32  # Larger batch = fewer steps but less noise
                 
                 # Display configuration being used
-                log_output.info(f"Starting training with parameters: epochs={total_iters}, batch_size={batch_size}, learning_rate={learning_rate}")
-                if st.session_state.training_params['use_existing']:
+                log_output.info(f"Starting training with parameters: epochs={epochs}, batch_size={batch_size}, learning_rate={learning_rate_lstm}")
+                
+                # Log data source configuration
+                if use_existing:
                     log_output.info("Using existing dataset for training")
+                    data_size = 5000  # Default size for existing data
                 else:
-                    sample_count = st.session_state.training_params['num_samples']
-                    anomaly_prob = st.session_state.training_params['anomaly_prob']
-                    log_output.info(f"Generating {sample_count} samples with anomaly probability {anomaly_prob}")
-            else:
-                # Limit to 100 iterations for demo while respecting the timestep scale
-                total_iters = min(st.session_state.training_params['total_timesteps'] // 500, 100)
-                learning_rate = st.session_state.training_params['learning_rate_rl']
-                exploration_rate = st.session_state.training_params['exploration_rate']
+                    log_output.info(f"Generating {num_samples} samples with anomaly probability {anomaly_prob}")
+                    data_size = num_samples
+                    
+                # Log data preprocessing steps
+                log_output.info(f"Preprocessing {data_size} data points...")
+                time.sleep(0.2)  # Simulate data loading time
+                
+                # Simulate different training behavior based on batch size
+                # Calculate batches per epoch based on data size and batch size
+                batches_per_epoch = max(1, int(data_size / batch_size)) 
+                # This is a key variable used later in the simulation
+                log_output.info(f"Training will use {batches_per_epoch} batches per epoch")
+                
+            else:  # RL Agents
+                # For RL: Scale down timesteps but preserve the original scale
+                timesteps_per_iter = 500  # Each iteration represents this many timesteps
+                total_iters = min(total_timesteps // timesteps_per_iter, 100)  # Cap at 100 for UI
+                
+                # Different learning parameters for RL
+                learning_factor = learning_rate_rl * 2500  # Higher learning rate = faster convergence
                 is_chaos = model_type == "RL Agent (Chaos)"
                 
-                # Display configuration being used
+                # Log configuration
                 log_output.info(f"Starting {model_type} training with parameters:")
-                log_output.info(f"Total timesteps: {st.session_state.training_params['total_timesteps']}")
-                log_output.info(f"Learning rate: {learning_rate}")
+                log_output.info(f"Total timesteps: {total_timesteps}")
+                log_output.info(f"Learning rate: {learning_rate_rl}")
                 log_output.info(f"Exploration rate: {exploration_rate}")
-                if st.session_state.training_params['use_local']:
+                
+                # Infrastructure configuration
+                if use_local:
                     log_output.info("Using LocalStack for environment simulation")
+                    # Simulate environment setup time
+                    log_output.info("Setting up LocalStack environment...")
+                    time.sleep(0.3)  # Simulate environment initialization
+                else:
+                    log_output.info("Using real AWS environment")
+                    log_output.info("Initializing AWS SDK clients...")
+                    time.sleep(0.3)  # Simulate initialization
+                
+                # Log additional configuration steps specific to RL
+                if is_chaos:
+                    log_output.info("Configuring chaos agent policy with PPO algorithm")
+                    log_output.info(f"Exploration configuration: epsilon={exploration_rate}")
+                else:
+                    log_output.info("Configuring remediation agent policy with A2C algorithm")
+                    log_output.info(f"Exploitation focus: epsilon={exploration_rate}")
             
             # Initial values for metrics
             best_loss = float('inf')
             best_reward = float('-inf') if model_type == "RL Agent (Chaos)" else float('-inf')
             anomaly_scores = []
             rewards = []
+            
+            # Initialize counters for later use
+            successful_disruptions = 0
+            successful_remediations = 0
+            
+            # Initialize other variables that might be referenced later
+            if 'batches_per_epoch' not in locals():
+                batches_per_epoch = 5  # Default value
+                
+            if 'timesteps_per_iter' not in locals():
+                timesteps_per_iter = 500  # Default value
             
             # Progress tracking
             for i in range(total_iters + 1):
@@ -887,42 +945,101 @@ def display_model_training():
                 if model_type == "LSTM Autoencoder (Anomaly Detection)":
                     # LSTM Autoencoder training - goal is to minimize reconstruction error
                     epoch = i
-                    max_epochs = total_iters
+                    max_epochs = epochs  # Use actual epoch count from parameters
                     
-                    # Simulate batch training
+                    # Calculate training progress - different learning curves based on parameters
+                    # Higher learning rate = faster initial drop, but potential plateaus
+                    # Larger batch size = smoother curve but potentially slower initial progress
+                    progress_factor = (i / total_iters)
+                    # Learning rate affects convergence speed (higher = faster convergence)
+                    lr_factor = learning_rate_lstm * 20
+                    # Batch size affects noise level (larger = less noise)
+                    noise_factor = 0.1 * (32 / batch_size)
+                    
+                    # Simulate batch training with actual batch size affecting behavior
                     batch_losses = []
-                    for b in range(5):  # Simulate 5 batches per epoch
-                        batch_loss = max(0.01, 1.0 - (i/(total_iters * 0.8)) + random.uniform(-0.05, 0.05))
+                    # Ensure batches_per_epoch is available from outer scope
+                    # Default to 5 if not defined (shouldn't happen, but prevents errors)
+                    actual_batches = batches_per_epoch if 'batches_per_epoch' in locals() else 5
+                    for b in range(actual_batches):  # Use actual batches per epoch based on batch size
+                        # Complex learning curve simulation that respects parameters:
+                        # - Higher learning rates cause faster initial drop but may plateau
+                        # - Smaller batch sizes increase noise/variance
+                        # - More epochs allow for continued refinement
+                        base_loss = max(0.01, 1.0 - (progress_factor * lr_factor))
+                        batch_noise = random.uniform(-noise_factor, noise_factor)
+                        
+                        # Apply anomaly probability if using generated data
+                        if not use_existing and anomaly_prob > 0:
+                            # Higher anomaly probability makes learning harder (increases loss)
+                            anomaly_factor = anomaly_prob * 0.2
+                            batch_loss = base_loss * (1 + anomaly_factor) + batch_noise
+                        else:
+                            batch_loss = base_loss + batch_noise
+                            
                         batch_losses.append(batch_loss)
                     
                     # Overall epoch metrics
                     loss = sum(batch_losses) / len(batch_losses)
-                    val_loss = loss * (1 + random.uniform(-0.1, 0.1))
+                    # Validation loss simulation - affected by data size and other factors
+                    if not use_existing and num_samples < 3000:
+                        # Small datasets lead to more overfitting (higher val loss)
+                        val_factor = 1.2
+                    else:
+                        val_factor = 1.05
+                    val_loss = loss * val_factor + random.uniform(-0.02, 0.02)
                     
                     # Track best model
                     if val_loss < best_loss:
                         best_loss = val_loss
-                        log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f} - ✓ New best model saved"
+                        log_entry = f"{timestamp} - Epoch {epoch+1}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f} - ✓ New best model saved"
                     else:
-                        log_entry = f"{timestamp} - Epoch {epoch}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f}"
+                        log_entry = f"{timestamp} - Epoch {epoch+1}/{max_epochs} - loss: {loss:.4f} - val_loss: {val_loss:.4f}"
                     
-                    status_text.text(f"Training epoch {epoch} of {max_epochs}, loss: {loss:.4f}")
+                    status_text.text(f"Training epoch {epoch+1} of {max_epochs}, loss: {loss:.4f}")
                 else:
                     # RL Agent training
-                    timestep = i * 500
-                    max_timesteps = st.session_state.training_params['total_timesteps']
+                    # Default timesteps_per_iter to 500 if not defined
+                    steps_per_iter = 500  # Default value 
+                    timestep = i * steps_per_iter  # Scale by steps per iteration
+                    max_timesteps = total_timesteps  # Use actual total timesteps from parameters
                     
-                    # Get exploration rate from parameters
-                    exploration_rate = st.session_state.training_params['exploration_rate']
+                    # RL training simulation that respects parameters:
+                    # For both agent types:
+                    # - Higher learning rate = faster policy updates
+                    # - More timesteps = more thorough learning
+                    # Additionally:
+                    # - Chaos agent: higher exploration = better at finding anomalies
+                    # - Remediation agent: lower exploration = better at focused remediation
+                    
+                    progress_factor = i / total_iters
+                    # Learning rate affects policy update speed
+                    lr_convergence = learning_rate_rl * 2000
                     
                     # Different reward functions for chaos vs remediation
                     if model_type == "RL Agent (Chaos)":
                         # For chaos: Higher anomaly score = better reward (maximizing disruption)
-                        anomaly_score = min(0.8, (i/total_iters) * exploration_rate + random.uniform(-0.05, 0.05))
+                        # Use exploration rate to determine how quickly agent finds disruptive actions
+                        exploration_impact = exploration_rate * 1.5  # Higher exploration = quicker discovery
+                        
+                        # Learning curve - starts low, increases as agent learns to cause chaos
+                        base_score = min(0.8, progress_factor * exploration_impact)
+                        # Apply learning rate effect - higher rates accelerate learning
+                        learning_effect = min(0.3, progress_factor * lr_convergence)
+                        anomaly_score = min(0.9, base_score + learning_effect)
+                        
+                        # Add random noise based on exploration rate
+                        noise_level = exploration_rate * 0.2
+                        anomaly_score += random.uniform(-noise_level, noise_level)
+                        anomaly_score = max(0.01, min(0.95, anomaly_score))  # Clamp to valid range
+                        
                         # Reward increases as anomaly score increases
                         reward = anomaly_score * 10
-                        # Occasional failed attempts
-                        if random.random() < 0.1:
+                        
+                        # Occasional failed attempts - use exploration rate to determine frequency
+                        # Higher exploration = more failures at start but fewer later
+                        failure_chance = 0.2 * (1 - progress_factor) if exploration_rate > 0.3 else 0.1
+                        if random.random() < failure_chance:
                             reward = -2.0  # Failed attempts get negative rewards
                             log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f} - Action failed!"
                         else:
@@ -930,12 +1047,26 @@ def display_model_training():
                     else:  # Remediation
                         # For remediation: Lower anomaly score = better reward (fixing issues)
                         # Start with high anomaly scores that get reduced over time
-                        initial_anomaly = 0.7 - (0.3 * random.random())
-                        anomaly_score = max(0.05, initial_anomaly - (i/total_iters) * exploration_rate)
+                        
+                        # Lower exploration = better focus on successful remediation strategies
+                        focus_factor = (0.5 - exploration_rate) * 2  # Invert: lower exploration = higher focus
+                        
+                        # Initially high anomaly that decreases as agent learns to fix problems
+                        initial_anomaly = 0.7
+                        remediation_speed = min(0.8, progress_factor * (1 + focus_factor) * lr_convergence)
+                        anomaly_score = max(0.05, initial_anomaly - remediation_speed)
+                        
+                        # Add random noise based on exploration rate
+                        noise_level = exploration_rate * 0.15
+                        anomaly_score += random.uniform(-noise_level, noise_level)
+                        anomaly_score = max(0.01, min(0.95, anomaly_score))  # Clamp to valid range
+                        
                         # Reward increases as anomaly score decreases
                         reward = (1 - anomaly_score) * 10
-                        # Occasional failed attempts
-                        if random.random() < 0.1:
+                        
+                        # Occasional failed attempts - more likely early on
+                        failure_chance = 0.15 * (1 - progress_factor)
+                        if random.random() < failure_chance:
                             reward = -2.0  # Failed attempts get negative rewards
                             log_entry = f"{timestamp} - Timestep {timestep}/{max_timesteps} - anomaly: {anomaly_score:.2f} - reward: {reward:.2f} - Remediation failed!"
                         else:
@@ -987,7 +1118,7 @@ def display_model_training():
             # Training complete
             status_text.success("Training complete!")
         
-        # Show mock evaluation results
+        # Show evaluation results based on actual training parameters
         st.subheader("Training Results")
         
         col1, col2 = st.columns(2)
@@ -995,27 +1126,96 @@ def display_model_training():
         with col1:
             st.subheader("Performance Metrics")
             if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                # Calculate metrics based on parameters
+                # Lower is better for loss metrics
+                final_loss = max(0.01, best_loss)
+                val_loss = final_loss * 1.1
+                
+                # Higher learning rate and epochs improve accuracy but risk overfitting
+                base_accuracy = min(0.95, 0.75 + (epochs/500) * 0.15 + (learning_rate_lstm/0.01) * 0.05)
+                
+                # Penalty for very small datasets or high anomaly probability
+                if not use_existing and num_samples < 3000:
+                    dataset_penalty = 0.05
+                elif not use_existing and anomaly_prob > 0.35:
+                    dataset_penalty = 0.03
+                else:
+                    dataset_penalty = 0
+                
+                accuracy = max(0.7, base_accuracy - dataset_penalty)
+                precision = accuracy - random.uniform(0.01, 0.03)
+                recall = accuracy - random.uniform(0.02, 0.05)
+                f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+                
+                # Calculate training time based on epochs and batch size
+                training_time_secs = epochs * 5 + (num_samples if not use_existing else 5000) / batch_size * 0.1
+                training_mins = int(training_time_secs // 60)
+                training_secs = int(training_time_secs % 60)
+                
                 st.json({
-                    "final_loss": 0.0342,
-                    "val_loss": 0.0387,
-                    "training_time": "1m 24s",
-                    "anomaly_threshold": 0.1,
+                    "final_loss": f"{final_loss:.4f}",
+                    "val_loss": f"{val_loss:.4f}",
+                    "training_time": f"{training_mins}m {training_secs}s",
+                    "anomaly_threshold": f"{max(0.05, min(0.2, best_loss * 2)):.3f}",
                     "evaluation": {
-                        "accuracy": 0.92,
-                        "precision": 0.89,
-                        "recall": 0.86,
-                        "f1_score": 0.87
+                        "accuracy": f"{accuracy:.2f}",
+                        "precision": f"{precision:.2f}",
+                        "recall": f"{recall:.2f}",
+                        "f1_score": f"{f1_score:.2f}"
                     }
                 })
             else:
+                # For RL agents, calculate metrics based on training parameters
+                # Mean reward calculation
+                if model_type == "RL Agent (Chaos)":
+                    # For chaos: higher exploration generally increases reward ceiling
+                    exploration_bonus = exploration_rate * 30
+                    timestep_factor = min(1.0, total_timesteps / 50000) * 40
+                    lr_factor = learning_rate_rl * 2000
+                    mean_reward = 20 + timestep_factor + exploration_bonus
+                    max_reward = mean_reward * (1.2 + random.uniform(0.1, 0.3))
+                    
+                    # Success is measured by ability to cause anomalies
+                    success_rate = min(0.95, 0.6 + exploration_rate * 0.4 + (total_timesteps/100000) * 0.2)
+                    
+                    # Successful disruptions calculation
+                    successful_disruptions = int(success_rate * (total_timesteps / 1000))
+                    
+                else:  # Remediation
+                    # For remediation: lower exploration can help with focused remediation
+                    focus_bonus = (0.5 - exploration_rate) * 20
+                    timestep_factor = min(1.0, total_timesteps / 50000) * 40
+                    lr_factor = learning_rate_rl * 2000
+                    mean_reward = 25 + timestep_factor + focus_bonus
+                    max_reward = mean_reward * (1.3 + random.uniform(0.1, 0.4))
+                    
+                    # Success is measured by ability to fix anomalies
+                    success_rate = min(0.95, 0.65 + (0.5 - exploration_rate) * 0.3 + (total_timesteps/100000) * 0.25)
+                    
+                    # Successful remediations calculation
+                    successful_remediations = int(success_rate * (total_timesteps / 1000))
+                
+                # Calculate training time based on timesteps and environment
+                time_multiplier = 1.2 if not use_local else 1.0  # Real AWS is slightly slower
+                training_time_secs = total_timesteps * 0.005 * time_multiplier
+                training_mins = int(training_time_secs // 60)
+                training_secs = int(training_time_secs % 60)
+                
+                if model_type == "RL Agent (Chaos)":
+                    success_key = "successful_disruptions"
+                    success_value = successful_disruptions
+                else:
+                    success_key = "successful_remediations"
+                    success_value = successful_remediations
+                
                 st.json({
-                    "mean_reward": 42.7,
-                    "max_reward": 67.3,
-                    "training_time": "4m 12s",
-                    "successful_remediations": 89,
+                    "mean_reward": f"{mean_reward:.1f}",
+                    "max_reward": f"{max_reward:.1f}",
+                    "training_time": f"{training_mins}m {training_secs}s",
+                    success_key: success_value,
                     "evaluation": {
-                        "average_return": 38.9,
-                        "success_rate": 0.82
+                        "average_return": f"{mean_reward * 0.9:.1f}",
+                        "success_rate": f"{success_rate:.2f}"
                     }
                 })
         
