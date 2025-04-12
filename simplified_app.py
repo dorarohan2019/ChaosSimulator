@@ -577,121 +577,99 @@ def display_chaos_simulation():
         def update_metrics_chart():
             # Create a dataframe from the metrics
             import pandas as pd
-            import plotly.express as px
-            import plotly.graph_objects as go
             
             if len(st.session_state.simulation_metrics['timestamps']) > 0:
                 df = pd.DataFrame(st.session_state.simulation_metrics)
+                df = df.set_index('timestamps')
                 
-                # Add the phase information based on action_type
-                if 'phase' not in df.columns:
-                    # Create a new phase column for color differentiation
-                    df['phase'] = df['action_type'].apply(lambda x: 'Chaos' if x == 'Chaos' else 'Remediation')
+                # Split data based on phase for separate visualizations
+                chaos_df = df[df['phase'] == 'Chaos'].copy()
+                remediation_df = df[df['phase'] == 'Remediation'].copy()
                 
-                # Create color-coded charts with Plotly
                 # First chart: Primary metrics (anomaly score and system health)
                 with st.session_state.primary_metrics_chart.container():
                     st.subheader("System Status Metrics")
+                    st.write("##### Anomaly Score")
                     
-                    # Create a figure with two traces
-                    fig = go.Figure()
+                    # Create separate charts for Chaos and Remediation phases
+                    col1, col2 = st.columns(2)
                     
-                    # Add traces for anomaly score with different colors based on phase
-                    for phase in ['Chaos', 'Remediation']:
-                        phase_df = df[df['phase'] == phase]
-                        if not phase_df.empty:
-                            color = 'rgba(255, 0, 0, 0.8)' if phase == 'Chaos' else 'rgba(0, 128, 0, 0.8)'
-                            fig.add_trace(go.Scatter(
-                                x=phase_df.index,
-                                y=phase_df['anomaly_score'],
-                                mode='lines+markers',
-                                name=f'Anomaly Score ({phase})',
-                                line=dict(color=color),
-                                marker=dict(size=8)
-                            ))
+                    with col1:
+                        st.markdown("**Chaos Phase (Red)**")
+                        if not chaos_df.empty:
+                            # For anomaly score during chaos phase (red)
+                            chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'Chaos: Anomaly Score'})
+                            st.line_chart(chaos_anomaly, color=["#FF0000"])
+                        else:
+                            st.info("No chaos phase data available yet.")
                     
-                    # Add traces for system health with different colors based on phase
-                    for phase in ['Chaos', 'Remediation']:
-                        phase_df = df[df['phase'] == phase]
-                        if not phase_df.empty:
-                            color = 'rgba(255, 165, 0, 0.8)' if phase == 'Chaos' else 'rgba(0, 0, 255, 0.8)'
-                            fig.add_trace(go.Scatter(
-                                x=phase_df.index,
-                                y=phase_df['system_health'],
-                                mode='lines+markers',
-                                name=f'System Health ({phase})',
-                                line=dict(color=color),
-                                marker=dict(size=8)
-                            ))
+                    with col2:
+                        st.markdown("**Remediation Phase (Green)**")
+                        if not remediation_df.empty:
+                            # For anomaly score during remediation phase (green)
+                            remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'Remediation: Anomaly Score'})
+                            st.line_chart(remediation_anomaly, color=["#008000"])
+                        else:
+                            st.info("No remediation phase data available yet.")
                     
-                    # Update layout
-                    fig.update_layout(
-                        title='System Status Over Time',
-                        xaxis_title='Time Step',
-                        yaxis_title='Value',
-                        legend_title='Metrics',
-                        template='plotly_white'
-                    )
+                    st.write("##### System Health")
                     
-                    # Display the figure
-                    st.plotly_chart(fig, use_container_width=True)
+                    col3, col4 = st.columns(2)
+                    
+                    with col3:
+                        st.markdown("**Chaos Phase (Orange)**")
+                        if not chaos_df.empty:
+                            # For system health during chaos phase (orange)
+                            chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'Chaos: System Health'})
+                            st.line_chart(chaos_health, color=["#FFA500"])
+                        else:
+                            st.info("No chaos phase data available yet.")
+                    
+                    with col4:
+                        st.markdown("**Remediation Phase (Blue)**")
+                        if not remediation_df.empty:
+                            # For system health during remediation phase (blue)
+                            remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'Remediation: System Health'})
+                            st.line_chart(remediation_health, color=["#0000FF"])
+                        else:
+                            st.info("No remediation phase data available yet.")
                 
-                # Second chart: Infrastructure metrics with color differentiation
+                # Second chart: Infrastructure metrics
                 with st.session_state.infra_metrics_chart.container():
                     st.subheader("Infrastructure Metrics")
                     
-                    # Filter out columns that don't have data yet
-                    metrics_to_plot = []
-                    for col in ['cpu_utilization', 'memory_usage', 'network_latency', 'api_error_rate', 'service_availability']:
-                        if any(val != 0 for val in df[col]):
-                            metrics_to_plot.append(col)
+                    # Define the metrics to display
+                    metrics = {
+                        'cpu_utilization': 'CPU Utilization',
+                        'memory_usage': 'Memory Usage', 
+                        'network_latency': 'Network Latency',
+                        'api_error_rate': 'API Error Rate',
+                        'service_availability': 'Service Availability'
+                    }
                     
-                    if metrics_to_plot:
-                        # Create a figure for infrastructure metrics
-                        fig = go.Figure()
-                        
-                        # Add traces for each metric with different colors based on phase
-                        colors = {
-                            'Chaos': {
-                                'cpu_utilization': 'rgba(255, 0, 0, 0.8)',
-                                'memory_usage': 'rgba(255, 99, 71, 0.8)',
-                                'network_latency': 'rgba(255, 140, 0, 0.8)',
-                                'api_error_rate': 'rgba(220, 20, 60, 0.8)',
-                                'service_availability': 'rgba(178, 34, 34, 0.8)'
-                            },
-                            'Remediation': {
-                                'cpu_utilization': 'rgba(0, 128, 0, 0.8)',
-                                'memory_usage': 'rgba(46, 139, 87, 0.8)',
-                                'network_latency': 'rgba(60, 179, 113, 0.8)',
-                                'api_error_rate': 'rgba(32, 178, 170, 0.8)',
-                                'service_availability': 'rgba(0, 100, 0, 0.8)'
-                            }
-                        }
-                        
-                        for metric in metrics_to_plot:
-                            for phase in ['Chaos', 'Remediation']:
-                                phase_df = df[df['phase'] == phase]
-                                if not phase_df.empty:
-                                    fig.add_trace(go.Scatter(
-                                        x=phase_df.index,
-                                        y=phase_df[metric],
-                                        mode='lines+markers',
-                                        name=f'{metric.replace("_", " ").title()} ({phase})',
-                                        line=dict(color=colors[phase][metric]),
-                                        marker=dict(size=8)
-                                    ))
-                        
-                        # Update layout
-                        fig.update_layout(
-                            title='Infrastructure Metrics Over Time',
-                            xaxis_title='Time Step',
-                            yaxis_title='Value',
-                            legend_title='Metrics',
-                            template='plotly_white'
-                        )
-                        
-                        # Display the figure
-                        st.plotly_chart(fig, use_container_width=True)
+                    # Show each metric with separate chaos/remediation charts
+                    for metric_key, metric_name in metrics.items():
+                        # Check if we have data for this metric
+                        if metric_key in df.columns and any(val != 0 for val in df[metric_key]):
+                            st.write(f"##### {metric_name}")
+                            
+                            metric_col1, metric_col2 = st.columns(2)
+                            
+                            with metric_col1:
+                                st.markdown(f"**Chaos Phase (Red)**")
+                                if not chaos_df.empty:
+                                    chaos_metric = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos: {metric_name}'})
+                                    st.line_chart(chaos_metric, color=["#FF0000"])
+                                else:
+                                    st.info("No chaos phase data available yet.")
+                            
+                            with metric_col2:
+                                st.markdown(f"**Remediation Phase (Green)**")
+                                if not remediation_df.empty:
+                                    remediation_metric = remediation_df[[metric_key]].rename(columns={metric_key: f'Remediation: {metric_name}'})
+                                    st.line_chart(remediation_metric, color=["#008000"])
+                                else:
+                                    st.info("No remediation phase data available yet.")
                 
                 # Get the most recent action details
                 latest_idx = len(df) - 1
