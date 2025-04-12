@@ -744,35 +744,55 @@ def display_chaos_simulation():
     if st.session_state.approval_requested and not st.session_state.simulation_running:
         st.info("⚠️ Chaos experiments can disrupt systems. Approval must be granted via Slack.")
         
-        # Check for Slack approval
+        # Implement auto-polling for Slack approval
         if 'approval_message_ts' in st.session_state and st.session_state.slack_token:
-            with st.spinner("Checking for approval response in Slack..."):
-                approval_status = check_for_approval(
-                    st.session_state.slack_token, 
-                    st.session_state.approval_message_ts,
-                    SLACK_CHANNEL_NAME
-                )
+            # Set up automatic approval checking
+            if 'last_approval_check' not in st.session_state:
+                st.session_state.last_approval_check = time.time()
+                st.session_state.check_count = 0
+            
+            # Check for approval every few seconds
+            current_time = time.time()
+            if current_time - st.session_state.last_approval_check >= 3.0:  # Check every 3 seconds
+                st.session_state.last_approval_check = current_time
+                st.session_state.check_count += 1
                 
-                if approval_status == "approved":
-                    st.success("✅ Simulation approved via Slack! Starting simulation...")
-                    st.session_state.simulation_running = True
+                # Check for approval
+                with st.spinner("Checking for approval response in Slack..."):
+                    approval_status = check_for_approval(
+                        st.session_state.slack_token, 
+                        st.session_state.approval_message_ts,
+                        SLACK_CHANNEL_NAME
+                    )
                     
-                    # Send notification about simulation start
-                    with st.spinner("Sending simulation start notification..."):
-                        notify_simulation_start(st.session_state.slack_token, num_actions)
-                    
-                    st.rerun()
-                    
-                elif approval_status == "denied":
-                    st.error("❌ Simulation denied via Slack.")
-                    st.session_state.approval_requested = False
-                    st.rerun()
-                else:
-                    st.info("Waiting for approval via Slack. Please reply with 'approve' or 'deny' in the Slack channel.")
-                    
-                    # Add a button to manually refresh approval status
-                    if st.button("Check Slack for Approval"):
+                    if approval_status == "approved":
+                        st.success("✅ Simulation approved via Slack! Starting simulation...")
+                        st.session_state.simulation_running = True
+                        
+                        # Send notification about simulation start
+                        with st.spinner("Sending simulation start notification..."):
+                            notify_simulation_start(st.session_state.slack_token, num_actions)
+                        
                         st.rerun()
+                        
+                    elif approval_status == "denied":
+                        st.error("❌ Simulation denied via Slack.")
+                        st.session_state.approval_requested = False
+                        st.rerun()
+                    elif st.session_state.check_count % 5 == 0:  # Only show this message every few checks
+                        st.info(f"Auto-checking for approval in Slack... (waiting for 'approve' or 'deny' response in channel)")
+            
+            # Add manual refresh option
+            st.info("Waiting for approval via Slack. The system will automatically detect your approval.")
+            if st.button("Force Manual Check Now"):
+                st.session_state.last_approval_check = 0  # Force immediate check
+                st.rerun()
+                
+            # Add auto-refresh to force page to check Slack automatically
+            st.markdown("""
+            <meta http-equiv="refresh" content="3">
+            <p style="font-size:0.8em; color:#888;">Auto-refreshing to check for Slack approval...</p>
+            """, unsafe_allow_html=True)
         else:
             st.warning("Slack approval message not sent properly. Please try requesting approval again.")
     
