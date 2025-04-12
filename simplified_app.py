@@ -150,21 +150,31 @@ class MockEnvironment:
         return MockAction()
         
     def get_action_description(self, action_id):
-        """Return a description for a given action ID"""
-        actions = {
-            0: "EC2 instance termination",
-            1: "RDS CPU stress",
-            2: "API throttling",
-            3: "Network latency injection",
-            4: "Lambda concurrency limitation",
-            5: "S3 access throttling",
-            6: "Security group rule modification",
-            7: "Memory exhaustion",
-            8: "Disk space filling",
-            9: "Database connection flooding",
-            10: "Route table modification"
+        """Return a description for a given action ID focused on security vulnerabilities"""
+        security_actions = {
+            0: "SQL Injection Vulnerability",
+            1: "Cross-Site Scripting (XSS) Attack",
+            2: "Privilege Escalation Attempt",
+            3: "API Key Compromise",
+            4: "Authentication Bypass Vulnerability",
+            5: "CSRF Token Exploitation",
+            6: "Insecure Direct Object Reference",
+            7: "Credential Exposure in Logs",
+            8: "XML External Entity (XXE) Attack",
+            9: "Server-Side Request Forgery (SSRF)",
+            10: "Command Injection Vulnerability",
+            11: "Encryption Failure in S3",
+            12: "IAM Privilege Misconfiguration",
+            13: "Unauthorized Data Exfiltration",
+            14: "DDoS Attack Simulation",
+            15: "Malware Injection in Lambda",
+            16: "Hardcoded Secret Discovery",
+            17: "Unpatched CVE Exploitation",
+            18: "JWT Token Tampering",
+            19: "Security Header Misconfiguration",
+            20: "Insecure File Upload Vulnerability"
         }
-        return actions.get(action_id, f"Unknown action {action_id}")
+        return security_actions.get(action_id % len(security_actions), f"Security attack {action_id}")
         
     def reset(self):
         """Reset the environment state"""
