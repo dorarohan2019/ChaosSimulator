@@ -1,0 +1,16 @@
+{
+  "chaos_agent": {
+    "latest": {
+      "file": "models/chaos_agent_20250412_105536.pkl",
+      "timestamp": "20250412_105536",
+      "trained_date": "2025-04-12 10:55:36"
+    }
+  },
+  "remediation_agent": {
+    "latest": {
+      "file": "models/remediation_agent_20250412_105605.pkl",
+      "timestamp": "20250412_105605",
+      "trained_date": "2025-04-12 10:56:05"
+    }
+  }
+}
