@@ -384,8 +384,11 @@ def display_chaos_simulation():
             for key in st.session_state.simulation_metrics:
                 st.session_state.simulation_metrics[key] = []
         
-        # Create chart container
-        metrics_chart = st.empty()
+        # Create persistent chart containers if they don't exist
+        if 'primary_metrics_chart' not in st.session_state:
+            st.session_state.primary_metrics_chart = st.empty()
+        if 'infra_metrics_chart' not in st.session_state:
+            st.session_state.infra_metrics_chart = st.empty()
         
         # Prepare timeseries chart data function
         def update_metrics_chart():
@@ -399,9 +402,10 @@ def display_chaos_simulation():
                 primary_metrics_df = df[['timestamps', 'anomaly_score', 'system_health']]
                 primary_metrics_df = primary_metrics_df.set_index('timestamps')
                 
-                # Show the primary metrics chart
-                st.subheader("System Status Metrics")
-                st.line_chart(primary_metrics_df)
+                # Show the primary metrics chart in the same container
+                with st.session_state.primary_metrics_chart.container():
+                    st.subheader("System Status Metrics")
+                    st.line_chart(primary_metrics_df)
                 
                 # Second chart: Infrastructure metrics
                 # Filter out columns that don't have data yet
@@ -414,9 +418,10 @@ def display_chaos_simulation():
                     infra_metrics_df = df[infra_columns]
                     infra_metrics_df = infra_metrics_df.set_index('timestamps')
                     
-                    # Show the infrastructure metrics chart
-                    st.subheader("Infrastructure Metrics")
-                    st.line_chart(infra_metrics_df)
+                    # Show the infrastructure metrics chart in the same container
+                    with st.session_state.infra_metrics_chart.container():
+                        st.subheader("Infrastructure Metrics")
+                        st.line_chart(infra_metrics_df)
                 
                 # Get the most recent action details
                 latest_idx = len(df) - 1

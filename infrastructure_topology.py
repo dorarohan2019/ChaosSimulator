@@ -373,30 +373,32 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
             }
             .aws-node {
                 position: absolute;
-                width: 90px;
-                height: 70px;
+                width: 120px;
+                height: 90px;
                 text-align: center;
-                font-size: 11px;
-                border-radius: 5px;
-                padding: 2px;
+                font-size: 14px;
+                border-radius: 8px;
+                padding: 5px;
                 background-color: white;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                box-shadow: 0 3px 6px rgba(0,0,0,0.2);
                 transition: all 0.3s ease;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
+                z-index: 10;
             }
             .aws-node:hover {
                 box-shadow: 0 4px 8px rgba(0,0,0,0.2);
                 transform: translateY(-2px);
             }
             .aws-node-icon {
-                font-size: 24px;
-                margin-bottom: 5px;
+                font-size: 36px;
+                margin-bottom: 8px;
             }
             .aws-node-label {
-                font-size: 10px;
+                font-size: 12px;
+                font-weight: bold;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -404,8 +406,8 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
             }
             .aws-edge {
                 position: absolute;
-                border-top: 2px solid #aaa;
-                z-index: -1;
+                border-top: 3px solid #aaa;
+                z-index: 5;
                 transition: all 0.3s ease;
             }
             .aws-state-healthy {
