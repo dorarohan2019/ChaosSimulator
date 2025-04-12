@@ -354,21 +354,84 @@ def display_chaos_simulation():
         metrics_container = st.empty()
         chart_container = st.empty()
         
+        # Initialize metrics history for visualization
+        if 'simulation_metrics' not in st.session_state:
+            st.session_state.simulation_metrics = {
+                'timestamps': [],
+                'anomaly_score': [],
+                'system_health': [],
+                'action_type': [],
+                'action_description': []
+            }
+        else:
+            # Clear previous metrics
+            for key in st.session_state.simulation_metrics:
+                st.session_state.simulation_metrics[key] = []
+        
+        # Create chart container
+        metrics_chart = st.empty()
+        
+        # Prepare timeseries chart data function
+        def update_metrics_chart():
+            # Create a dataframe from the metrics
+            import pandas as pd
+            if len(st.session_state.simulation_metrics['timestamps']) > 0:
+                df = pd.DataFrame(st.session_state.simulation_metrics)
+                
+                # Create two separate dataframes for visualization
+                # One for metrics (line chart)
+                metrics_df = df[['timestamps', 'anomaly_score', 'system_health']]
+                metrics_df = metrics_df.set_index('timestamps')
+                
+                # Show the metrics chart
+                metrics_chart.line_chart(metrics_df)
+                
+                # Show action log below chart
+                actions_df = df[['timestamps', 'action_type', 'action_description']]
+                actions_df = actions_df.sort_values('timestamps', ascending=False)
+                
+                # Format the action log as a table
+                st.subheader("Action Timeline")
+                action_table = ""
+                for idx, row in actions_df.iterrows():
+                    time_str = row['timestamps'].strftime("%H:%M:%S")
+                    action_type = row['action_type']
+                    action_desc = row['action_description']
+                    
+                    # Icon based on action type
+                    icon = "🔴" if action_type == "Chaos" else "🟢"
+                    action_table += f"**{time_str}** {icon} **{action_type}**: {action_desc}\n\n"
+                
+                st.markdown(action_table)
+        
         # Simulation loop
         try:
             for step in range(st.session_state.current_step, num_actions):
                 st.session_state.current_step = step
-                progress_bar.progress((step + 1) / num_actions)
+                progress_bar.progress((step + 1) / (num_actions * 2))  # Account for both chaos and remediation steps
                 
-                # Select and apply chaos action
+                # Step 1: Select and apply chaos action
                 chaos_action = chaos_env.select_action(st.session_state.simulation_state)
                 action_id = chaos_action.item()
                 action_description = chaos_env.get_action_description(action_id)
                 
-                status_container.info(f"Step {step+1}/{num_actions}: Executing {action_description}")
+                status_container.info(f"Step {step+1}.A: Executing chaos action: {action_description}")
                 
                 # Apply chaos action
                 next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
+                
+                # Generate metrics for visualization
+                import random
+                from datetime import datetime
+                anomaly_score = chaos_info.get('anomaly_score', random.uniform(0.1, 0.4))
+                system_health = max(0, 1.0 - anomaly_score)  # Health decreases as anomaly score increases
+                
+                # Record metrics
+                st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                st.session_state.simulation_metrics['anomaly_score'].append(anomaly_score)
+                st.session_state.simulation_metrics['system_health'].append(system_health)
+                st.session_state.simulation_metrics['action_type'].append("Chaos")
+                st.session_state.simulation_metrics['action_description'].append(action_description)
                 
                 # Record action
                 st.session_state.chaos_actions.append({
@@ -376,50 +439,82 @@ def display_chaos_simulation():
                     'action': action_id,
                     'description': action_description,
                     'reward': chaos_reward,
-                    'anomaly_score': chaos_info.get('anomaly_score', 0)
+                    'anomaly_score': anomaly_score,
+                    'timestamp': datetime.now()
                 })
                 
                 # Display state metrics
                 metrics_container.write({
-                    'Anomaly Score': chaos_info.get('anomaly_score', 0),
-                    'Chaos Reward': chaos_reward
+                    'Anomaly Score': f"{anomaly_score:.4f}",
+                    'System Health': f"{system_health:.4f}",
+                    'Chaos Reward': f"{chaos_reward:.4f}"
                 })
                 
-                # Check for anomaly and apply remediation if needed
-                import random
-                anomaly_score = random.uniform(0.0, 0.3)
-                
-                if anomaly_score > 0.1:  # Threshold for remediation
-                    status_container.warning(f"Anomaly detected (score: {anomaly_score:.4f}). Applying remediation...")
-                    
-                    # Select and apply remediation action
-                    remediation_action = remediation_env.select_action(next_state)
-                    remediation_id = remediation_action.item()
-                    remediation_description = remediation_env.get_action_description(remediation_id)
-                    
-                    # Apply remediation
-                    remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
-                    
-                    # Record remediation action
-                    st.session_state.remediation_actions.append({
-                        'step': step,
-                        'action': remediation_id,
-                        'description': remediation_description,
-                        'reward': remediation_reward,
-                        'anomaly_before': anomaly_score,
-                        'anomaly_after': remediation_info.get('anomaly_after', 0)
-                    })
-                    
-                    status_container.success(f"Applied remediation: {remediation_description}")
-                    st.session_state.simulation_state = remediated_state
-                else:
-                    st.session_state.simulation_state = next_state
+                # Update visualization
+                update_metrics_chart()
                 
                 # Delay for visualization
                 time.sleep(delay)
                 
                 if chaos_done:
                     status_container.warning("Simulation ended early due to critical failure.")
+                    break
+                
+                # Step 2: Apply remediation action
+                progress_bar.progress((step + 1.5) / (num_actions * 2))  # Halfway between steps
+                
+                # Select and apply remediation action
+                remediation_action = remediation_env.select_action(next_state)
+                remediation_id = remediation_action.item()
+                remediation_description = remediation_env.get_action_description(remediation_id)
+                
+                status_container.warning(f"Step {step+1}.B: Applying remediation: {remediation_description}")
+                
+                # Apply remediation
+                remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
+                
+                # Generate metrics after remediation
+                anomaly_after = remediation_info.get('anomaly_after', max(0.01, anomaly_score - random.uniform(0.05, 0.2)))
+                system_health_after = max(0, 1.0 - anomaly_after)
+                
+                # Record metrics after remediation
+                st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                st.session_state.simulation_metrics['anomaly_score'].append(anomaly_after)
+                st.session_state.simulation_metrics['system_health'].append(system_health_after)
+                st.session_state.simulation_metrics['action_type'].append("Remediation")
+                st.session_state.simulation_metrics['action_description'].append(remediation_description)
+                
+                # Record remediation action
+                st.session_state.remediation_actions.append({
+                    'step': step,
+                    'action': remediation_id,
+                    'description': remediation_description,
+                    'reward': remediation_reward,
+                    'anomaly_before': anomaly_score,
+                    'anomaly_after': anomaly_after,
+                    'improvement': anomaly_score - anomaly_after,
+                    'timestamp': datetime.now()
+                })
+                
+                # Display updated metrics
+                metrics_container.write({
+                    'Anomaly Before': f"{anomaly_score:.4f}",
+                    'Anomaly After': f"{anomaly_after:.4f}",
+                    'System Health': f"{system_health_after:.4f}",
+                    'Improvement': f"{anomaly_score - anomaly_after:.4f}"
+                })
+                
+                # Update visualization
+                update_metrics_chart()
+                
+                # Set the state for next iteration
+                st.session_state.simulation_state = remediated_state
+                
+                # Delay for visualization
+                time.sleep(delay)
+                
+                if remediation_done:
+                    status_container.warning("Remediation completed the simulation early.")
                     break
             
             # Simulation completed
