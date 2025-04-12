@@ -423,17 +423,19 @@ def display_chaos_simulation():
                 latest_action_type = df.iloc[latest_idx]['action_type']
                 latest_action_desc = df.iloc[latest_idx]['action_description']
                 
-                # Show the infrastructure topology visualization
-                st.subheader("Infrastructure Topology Visualization")
+                # Single persistent infrastructure topology visualization
+                if 'topology_container' not in st.session_state:
+                    st.session_state.topology_container = st.empty()
                 
                 # Update the topology based on the latest action
                 if latest_action_type == "Chaos":
                     st.session_state.infra_topology.apply_chaos_action(latest_action_desc)
                 elif latest_action_type == "Remediation":
                     st.session_state.infra_topology.apply_remediation_action(latest_action_desc)
-                
-                # Display the topology
-                display_infrastructure_topology(st.session_state.infra_topology, width=800, height=400, show_controls=False)
+                    
+                # Display the updated infrastructure visualization in the same container
+                with st.session_state.topology_container.container():
+                    display_infrastructure_topology(st.session_state.infra_topology, width=800, height=500, show_controls=False)
                 
                 # Show action log below chart
                 actions_df = df[['timestamps', 'action_type', 'action_description']]

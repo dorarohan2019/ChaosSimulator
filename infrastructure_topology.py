@@ -4,6 +4,7 @@ Infrastructure topology visualization module for AWS chaos engineering platform.
 import streamlit as st
 import pandas as pd
 import random
+import math
 from datetime import datetime, timedelta
 
 # AWS service icons (simple emoji representation)
@@ -324,54 +325,234 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
                 'icon': topology.get_node_icon(node_id)
             })
         
-        # Display AWS infrastructure by tier
-        st.subheader("AWS Infrastructure Status")
+        # Display interactive AWS infrastructure topology diagram
+        st.subheader("AWS Infrastructure Topology")
         
-        # Create tier-based view
-        tier_order = ['network', 'balancer', 'web', 'app', 'data', 'storage', 'messaging', 'compute', 'api']
-        col1, col2 = st.columns(2)
+        # Define the layers for visual representation
+        layers = {
+            'vpc': {'y': 0, 'label': 'Network'},
+            'subnet': {'y': 1, 'label': 'Subnets'},
+            'balancer': {'y': 2, 'label': 'Load Balancing'},
+            'web': {'y': 3, 'label': 'Web Tier'},
+            'app': {'y': 4, 'label': 'Application Tier'},
+            'data': {'y': 5, 'label': 'Data Tier'},
+            'storage': {'y': 6, 'label': 'Storage'},
+            'messaging': {'y': 6, 'label': 'Messaging'},
+            'compute': {'y': 6, 'label': 'Compute'},
+            'api': {'y': 2, 'label': 'API Gateway'}
+        }
         
-        for i, tier_name in enumerate(tier_order):
-            if tier_name in tiers:
-                # Alternate between columns
-                col = col1 if i % 2 == 0 else col2
+        # Create HTML for the architecture diagram
+        html = """
+        <style>
+            .aws-diagram {
+                position: relative;
+                width: 100%;
+                height: 600px;
+                background-color: #f5f9fc;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px;
+                font-family: Arial, sans-serif;
+            }
+            .aws-layer {
+                position: relative;
+                width: 100%;
+                height: 80px;
+                margin-bottom: 5px;
+                border-bottom: 1px dashed #ccc;
+                padding: 5px;
+            }
+            .aws-layer-label {
+                position: absolute;
+                left: 5px;
+                top: 2px;
+                color: #666;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            .aws-node {
+                position: absolute;
+                width: 90px;
+                height: 70px;
+                text-align: center;
+                font-size: 11px;
+                border-radius: 5px;
+                padding: 2px;
+                background-color: white;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .aws-node:hover {
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                transform: translateY(-2px);
+            }
+            .aws-node-icon {
+                font-size: 24px;
+                margin-bottom: 5px;
+            }
+            .aws-node-label {
+                font-size: 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
+            }
+            .aws-edge {
+                position: absolute;
+                border-top: 2px solid #aaa;
+                z-index: -1;
+                transition: all 0.3s ease;
+            }
+            .aws-state-healthy {
+                border: 2px solid #4CAF50;
+            }
+            .aws-state-degraded {
+                border: 2px solid #FF9800;
+                background-color: #FFF3E0;
+            }
+            .aws-state-failed {
+                border: 2px solid #F44336;
+                background-color: #FFEBEE;
+            }
+            .aws-edge-healthy {
+                border-top: 2px solid #4CAF50;
+            }
+            .aws-edge-degraded {
+                border-top: 2px solid #FF9800;
+            }
+            .aws-edge-failed {
+                border-top: 2px solid #F44336;
+            }
+        </style>
+        <div class="aws-diagram">
+        """
+        
+        # Add layers
+        for layer_name, layer_info in layers.items():
+            html += f"""
+            <div class="aws-layer" style="top: {layer_info['y'] * 85}px;">
+                <div class="aws-layer-label">{layer_info['label']}</div>
+            </div>
+            """
+        
+        # Map of x-positions for each node (will be calculated based on how many nodes in each layer)
+        node_positions = {}
+        max_nodes_per_layer = {}
+        
+        # Count nodes per layer
+        for node_id, node_info in topology.nodes.items():
+            tier = node_info['tier']
+            if tier not in max_nodes_per_layer:
+                max_nodes_per_layer[tier] = 0
+            max_nodes_per_layer[tier] += 1
+        
+        # Calculate x-positions for nodes
+        for node_id, node_info in topology.nodes.items():
+            tier = node_info['tier']
+            y = layers[tier]['y'] * 85 + 30  # vertical position
+            
+            # Get node position index in this tier
+            node_index = 0
+            for other_id, other_info in topology.nodes.items():
+                if other_info['tier'] == tier and other_id < node_id:
+                    node_index += 1
+            
+            # Calculate x position based on node index and total nodes in tier
+            total_nodes = max_nodes_per_layer[tier]
+            segment_width = 100 / (total_nodes + 1)  # percentage
+            x = (node_index + 1) * segment_width  # percentage
+            
+            # Special case for API Gateway - position on right side
+            if tier == 'api':
+                x = 85
+            
+            # Store position
+            node_positions[node_id] = {'x': x, 'y': y}
+        
+        # Add edges (connections) first so they appear behind nodes
+        for source, target in topology.edges:
+            if source in node_positions and target in node_positions:
+                source_pos = node_positions[source]
+                target_pos = node_positions[target]
                 
-                # Create human-readable tier names
-                tier_display_names = {
-                    'network': 'Network Layer',
-                    'balancer': 'Load Balancers',
-                    'web': 'Web Tier',
-                    'app': 'Application Tier',
-                    'data': 'Data Tier',
-                    'storage': 'Storage Services',
-                    'messaging': 'Messaging Services',
-                    'compute': 'Compute Services',
-                    'api': 'API Services'
-                }
+                # Determine edge state (worst of the two connected nodes)
+                source_state = topology.node_states[source]
+                target_state = topology.node_states[target] 
+                edge_state = 'degraded' if ('degraded' in [source_state, target_state]) else \
+                             'failed' if ('failed' in [source_state, target_state]) else 'healthy'
                 
-                with col:
-                    st.markdown(f"#### {tier_display_names.get(tier_name, tier_name)}")
-                    
-                    # Create a dataframe for this tier
-                    tier_data = []
-                    for node in tiers[tier_name]:
-                        # Set display color based on state
-                        state_colors = {
-                            'healthy': '🟢',
-                            'degraded': '🟠',
-                            'failed': '🔴'
-                        }
-                        status_icon = state_colors.get(node['state'], '⚪')
-                        
-                        tier_data.append({
-                            'Service': f"{node['icon']} {node['label']}",
-                            'Status': f"{status_icon} {node['state'].title()}"
-                        })
-                    
-                    # Create a dataframe for display
-                    if tier_data:
-                        df = pd.DataFrame(tier_data)
-                        st.dataframe(df, hide_index=True, use_container_width=True)
+                # Calculate edge position and angle
+                x1, y1 = source_pos['x'], source_pos['y']
+                x2, y2 = target_pos['x'], target_pos['y']
+                
+                # Edge length and angle
+                length = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
+                angle = math.atan2(y2 - y1, x2 - x1) * 180 / math.pi
+                
+                # Edge midpoint for positioning
+                mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+                
+                html += f"""
+                <div class="aws-edge aws-edge-{edge_state}" 
+                     style="width: {length}%; 
+                            top: {my}px; 
+                            left: {min(x1, x2)}%; 
+                            transform: rotate({angle}deg); 
+                            transform-origin: 0 0;">
+                </div>
+                """
+        
+        # Add nodes
+        for node_id, node_info in topology.nodes.items():
+            tier = node_info['tier']
+            node_type = node_info['type']
+            label = node_info['label']
+            state = topology.node_states[node_id]
+            icon = AWS_ICONS.get(node_type, '●')
+            
+            # Get position
+            pos = node_positions[node_id]
+            
+            html += f"""
+            <div class="aws-node aws-state-{state}" 
+                 style="left: calc({pos['x']}% - 45px); top: {pos['y'] - 35}px;"
+                 title="{label} - {state.title()}">
+                <div class="aws-node-icon">{icon}</div>
+                <div class="aws-node-label">{label}</div>
+            </div>
+            """
+        
+        html += "</div>"
+        
+        # Display the architecture diagram
+        st.markdown(html, unsafe_allow_html=True)
+        
+        # Add event information
+        if topology.state_history:
+            latest_event = topology.state_history[-1]
+            event_type = latest_event['action'].title()
+            description = latest_event['description']
+            
+            if event_type == 'Chaos':
+                st.error(f"Latest Event: {event_type} - {description}")
+            else:
+                st.success(f"Latest Event: {event_type} - {description}")
+                
+            # Display affected or restored nodes
+            affected_key = 'affected_nodes' if 'affected_nodes' in latest_event else 'restored_nodes'
+            if affected_key in latest_event and latest_event[affected_key]:
+                nodes = [f"{topology.nodes[node]['label']} → {state}" 
+                        for node, state in latest_event[affected_key]]
+                
+                if affected_key == 'affected_nodes':
+                    st.warning(f"Affected Services: {', '.join(nodes)}")
+                else:
+                    st.info(f"Restored Services: {', '.join(nodes)}")
         
         # Display dependencies that have issues
         problematic_deps = []
