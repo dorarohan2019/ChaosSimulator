@@ -580,11 +580,12 @@ def display_chaos_simulation():
             
             if len(st.session_state.simulation_metrics['timestamps']) > 0:
                 df = pd.DataFrame(st.session_state.simulation_metrics)
-                df = df.set_index('timestamps')
+                # Create numerical index instead of using timestamps as index
+                df = df.reset_index(drop=True)
                 
                 # Split data based on phase for separate visualizations
-                chaos_df = df[df['phase'] == 'Chaos'].copy()
-                remediation_df = df[df['phase'] == 'Remediation'].copy()
+                chaos_df = df[df['phase'] == 'Chaos'].copy().reset_index(drop=True)
+                remediation_df = df[df['phase'] == 'Remediation'].copy().reset_index(drop=True)
                 
                 # First chart: Primary metrics (anomaly score and system health)
                 with st.session_state.primary_metrics_chart.container():
