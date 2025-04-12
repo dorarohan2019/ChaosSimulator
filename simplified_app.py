@@ -1728,13 +1728,75 @@ def display_model_training():
             # Training complete
             status_text.success("Training complete!")
             
-            # Update model status in session state based on model type
+            # Create mock model data for persistence
+            import numpy as np
+            import pickle
+            import os
+            
+            # Generate model data based on the type
             if model_type == "LSTM Autoencoder (Anomaly Detection)":
-                st.session_state.model_statuses['anomaly_model'] = f"Trained (Epochs: {epochs})"
+                # Create a mock LSTM model (simplified as a dict with weights and config)
+                model_data = {
+                    'weights': np.random.randn(10, 10).tolist(),  # Mock weights
+                    'config': {
+                        'input_shape': (5, 25),
+                        'latent_dim': 8,
+                        'epochs': epochs,
+                        'batch_size': batch_size,
+                        'learning_rate': learning_rate_lstm,
+                        'timestamp': datetime.now().isoformat()
+                    },
+                    'training_history': logs
+                }
+                model_type_key = 'anomaly_model'
+                
             elif model_type == "RL Agent (Chaos)":
-                st.session_state.model_statuses['chaos_agent'] = f"Trained (Steps: {total_timesteps})"
+                # Create a mock RL model for chaos simulation
+                model_data = {
+                    'policy': np.random.randn(5, 36).tolist(),  # Mock policy weights
+                    'config': {
+                        'state_shape': (5, 25),
+                        'action_space': 36,
+                        'total_timesteps': total_timesteps,
+                        'exploration_rate': exploration_rate,
+                        'learning_rate': learning_rate_rl,
+                        'timestamp': datetime.now().isoformat()
+                    },
+                    'training_history': logs
+                }
+                model_type_key = 'chaos_agent'
+                
             elif model_type == "RL Agent (Remediation)":
-                st.session_state.model_statuses['remediation_agent'] = f"Trained (Steps: {total_timesteps})"
+                # Create a mock RL model for remediation
+                model_data = {
+                    'policy': np.random.randn(5, 25).tolist(),  # Mock policy weights
+                    'config': {
+                        'state_shape': (5, 25),
+                        'action_space': 25,
+                        'total_timesteps': total_timesteps,
+                        'exploration_rate': exploration_rate,
+                        'learning_rate': learning_rate_rl,
+                        'timestamp': datetime.now().isoformat()
+                    },
+                    'training_history': logs
+                }
+                model_type_key = 'remediation_agent'
+            
+            # Save the trained model
+            if save_model(model_type_key, model_data):
+                # Update status with success message
+                st.success(f"✅ Model saved successfully: {model_type_key}")
+                
+                # Update model status in session state based on model type
+                if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                    st.session_state.model_statuses['anomaly_model'] = f"Trained (Epochs: {epochs})"
+                elif model_type == "RL Agent (Chaos)":
+                    st.session_state.model_statuses['chaos_agent'] = f"Trained (Steps: {total_timesteps})"
+                elif model_type == "RL Agent (Remediation)":
+                    st.session_state.model_statuses['remediation_agent'] = f"Trained (Steps: {total_timesteps})"
+            else:
+                # Show error message if saving failed
+                st.error("Failed to save model. Check logs for details.")
         
         # Show evaluation results based on actual training parameters
         st.subheader("Training Results")
