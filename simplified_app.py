@@ -829,16 +829,23 @@ def display_chaos_simulation():
                     from datetime import datetime
                 
                     # More controlled anomaly score generation
-                    # Base the anomaly score on the action and make it more consistent
+                    # Base the anomaly score on the security-focused action and make it more consistent
                     action_severity = {
-                        "CPU spike": 0.6,
-                        "Memory leak": 0.7,
-                        "Network partition": 0.8,
-                        "API rate limiting": 0.5,
-                        "Service termination": 0.9,
-                        "DNS failure": 0.75,
-                        "Database connection": 0.65,
-                        "Load balancer": 0.55
+                        "Privilege escalation": 0.9,
+                        "SQL injection": 0.85,
+                        "Authentication bypass": 0.8,
+                        "Credential exposure": 0.75,
+                        "Cross-site scripting": 0.7,
+                        "Malware infection": 0.9,
+                        "API key compromise": 0.8,
+                        "Encryption failure": 0.85,
+                        "SSRF vulnerability": 0.7,
+                        "Data exfiltration": 0.95,
+                        "Session hijacking": 0.8,
+                        "DDoS attack": 0.85,
+                        "Insecure deserialization": 0.7,
+                        "CSRF vulnerability": 0.65,
+                        "Access control failure": 0.8
                     }
                 
                     # Extract the first part of the action description to match severity map
@@ -961,15 +968,23 @@ def display_chaos_simulation():
                     # Generate metrics after remediation using more realistic patterns
                     
                     # Map remediation actions to their typical effectiveness
+                    # Security-focused remediation effectiveness
                     remediation_effectiveness = {
-                        "Scale": 0.7,           # Scaling is effective for load issues
-                        "Restart": 0.6,         # Restart helps but doesn't fix root causes
-                        "Failover": 0.8,        # Failover to healthy nodes is very effective
-                        "Throttle": 0.5,        # Throttling helps partially
-                        "Rollback": 0.75,       # Rollback to previous version often helps
-                        "Provision": 0.65,      # New resources help but take time
-                        "Reconfigure": 0.6,     # Configuration changes help for specific issues
-                        "Isolate": 0.7          # Isolation contains failures well
+                        "Patch": 0.85,            # Security patches are very effective for vulnerabilities
+                        "Zero-Day": 0.9,          # Zero-day vulnerability patching is highly effective
+                        "Firewall": 0.8,          # Firewall rule updates block malicious traffic effectively
+                        "IAM": 0.85,              # Identity access management fixes address permission issues
+                        "Encryption": 0.8,        # Encryption fixes secure data at rest/in transit
+                        "Authentication": 0.75,   # Authentication improvements address access issues
+                        "Isolate": 0.7,           # Isolation contains security breaches
+                        "Restore": 0.6,           # Restoration from clean backups removes compromises
+                        "Block": 0.7,             # Blocking malicious IPs/domains
+                        "Throttle": 0.65,         # Throttling helps with DDoS attacks
+                        "Reset": 0.65,            # Session resets help with hijacking
+                        "Clean": 0.8,             # Malware/backdoor removal
+                        "Harden": 0.75,           # Security hardening makes systems more resilient
+                        "Revoke": 0.9,            # Revoking compromised credentials
+                        "Secure": 0.8             # Securing configurations against exploits
                     }
                 
                     # Extract remediation type
@@ -991,16 +1006,26 @@ def display_chaos_simulation():
                         # Determine if this remediation targets the specific issue detected by chaos action
                         remediation_targets_issue = False
                         
-                        # Map common issue types to their remediation
-                        if "CPU" in action_description and ("Scale" in remediation_description or "Throttle" in remediation_description):
+                        # Map security-focused issues to their appropriate remediations
+                        if "Privilege escalation" in action_description and ("IAM" in remediation_description or "Revoke" in remediation_description):
                             remediation_targets_issue = True
-                        elif "memory" in action_description and ("Restart" in remediation_description or "Provision" in remediation_description):
+                        elif "SQL injection" in action_description and ("Patch" in remediation_description or "Firewall" in remediation_description):
                             remediation_targets_issue = True
-                        elif "network" in action_description and ("Failover" in remediation_description or "Reconfigure" in remediation_description):
+                        elif "Authentication bypass" in action_description and ("Authentication" in remediation_description or "Patch" in remediation_description):
                             remediation_targets_issue = True
-                        elif "API" in action_description and ("Throttle" in remediation_description or "Rollback" in remediation_description):
+                        elif "Credential exposure" in action_description and ("Revoke" in remediation_description or "Reset" in remediation_description):
                             remediation_targets_issue = True
-                        elif "service" in action_description and ("Restart" in remediation_description or "Failover" in remediation_description):
+                        elif "Cross-site scripting" in action_description and ("Patch" in remediation_description or "Secure" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "Malware" in action_description and ("Clean" in remediation_description or "Isolate" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "API key compromise" in action_description and ("Revoke" in remediation_description or "Reset" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "Encryption failure" in action_description and ("Encryption" in remediation_description or "Secure" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "Data exfiltration" in action_description and ("Block" in remediation_description or "Isolate" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "DDoS" in action_description and ("Throttle" in remediation_description or "Block" in remediation_description):
                             remediation_targets_issue = True
                 
                                         # Infrastructure metrics improvements are better when targeted properly
