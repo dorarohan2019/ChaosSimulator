@@ -2,6 +2,9 @@ import streamlit as st
 import time
 import os
 import json
+import random
+import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 import logging
 from collections import deque
@@ -810,14 +813,212 @@ def display_model_training():
             # Recommendation
             st.info(f"💡 **Recommendation:** {impact['recommendation']}")
             
+            # Add parameter comparison visualization
+            st.subheader("Parameters Comparison")
+            
+            # Store historical parameter sets in session state for comparison
+            if 'parameter_history' not in st.session_state:
+                st.session_state.parameter_history = []
+            
+            # Get the parameters from session state to avoid unbound variables
+            current_epochs = st.session_state.training_params['epochs']
+            current_batch_size = st.session_state.training_params['batch_size']
+            current_learning_rate_lstm = st.session_state.training_params['learning_rate_lstm']
+            current_total_timesteps = st.session_state.training_params['total_timesteps']
+            current_learning_rate_rl = st.session_state.training_params['learning_rate_rl']
+            current_exploration_rate = st.session_state.training_params['exploration_rate']
+            
+            # Create comparison chart based on model type
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                # Chart showing relationship between epochs, learning rate and accuracy
+                chart_data = {
+                    "Parameter": [],
+                    "Value": [],
+                    "Impact": []
+                }
+                
+                # Add current parameters
+                chart_data["Parameter"].append("Epochs")
+                chart_data["Value"].append(current_epochs)
+                chart_data["Impact"].append(min(1.0, 0.3 + (current_epochs/500) * 0.6))
+                
+                chart_data["Parameter"].append("Batch Size")
+                chart_data["Value"].append(current_batch_size)
+                normalized_batch = min(1.0, current_batch_size/128)
+                chart_data["Impact"].append(0.5 + normalized_batch * 0.25)
+                
+                chart_data["Parameter"].append("Learning Rate")
+                chart_data["Value"].append(current_learning_rate_lstm)
+                normalized_lr = min(1.0, (current_learning_rate_lstm/0.1) * 0.9)
+                chart_data["Impact"].append(normalized_lr)
+                
+                # Create a visual representation of parameter impacts
+                st.write("Parameter Impact on Training (higher = stronger effect)")
+                chart_df = pd.DataFrame(chart_data)
+                st.bar_chart(chart_df.set_index("Parameter")["Impact"])
+                
+                # Show overfitting risk graph
+                if current_epochs > 300 and current_batch_size < 32:
+                    overfitting_risk = 0.8
+                elif current_epochs > 200 and current_batch_size < 64:
+                    overfitting_risk = 0.6
+                elif current_epochs > 100:
+                    overfitting_risk = 0.4
+                else:
+                    overfitting_risk = 0.2
+                    
+                underfitting_risk = 0.8 if current_epochs < 50 else 0.5 if current_epochs < 100 else 0.2
+                
+                risk_data = {
+                    "Risk Type": ["Overfitting", "Underfitting"],
+                    "Risk Level": [overfitting_risk, underfitting_risk]
+                }
+                risk_df = pd.DataFrame(risk_data)
+                st.write("Training Risk Assessment")
+                st.bar_chart(risk_df.set_index("Risk Type")["Risk Level"])
+                
+            else:  # RL agents
+                # Different visualization for RL agents
+                chart_data = {
+                    "Parameter": [],
+                    "Value": [],
+                    "Impact": []
+                }
+                
+                # Add current parameters
+                chart_data["Parameter"].append("Timesteps")
+                chart_data["Value"].append(current_total_timesteps)
+                chart_data["Impact"].append(min(1.0, current_total_timesteps/100000))
+                
+                chart_data["Parameter"].append("Learning Rate")
+                chart_data["Value"].append(current_learning_rate_rl)
+                normalized_lr = min(1.0, (current_learning_rate_rl/0.001) * 0.8)
+                chart_data["Impact"].append(normalized_lr)
+                
+                chart_data["Parameter"].append("Exploration")
+                chart_data["Value"].append(current_exploration_rate)
+                chart_data["Impact"].append(current_exploration_rate * 2)
+                
+                # Create a visual representation of parameter impacts
+                st.write("Parameter Impact on Training (higher = stronger effect)")
+                chart_df = pd.DataFrame(chart_data)
+                st.bar_chart(chart_df.set_index("Parameter")["Impact"])
+                
+                # Show success probability vs training time
+                training_time = current_total_timesteps * 0.005
+                success_prob = 0.3 + min(0.6, current_total_timesteps/100000 * 0.6)
+                
+                if model_type == "RL Agent (Chaos)":
+                    # For chaos agents, add exploration bonus
+                    success_prob += current_exploration_rate * 0.2
+                else:
+                    # For remediation agents, lower exploration helps
+                    success_prob += (0.5 - current_exploration_rate) * 0.15
+                
+                trade_data = {
+                    "Metric": ["Training Time", "Success Probability"],
+                    "Value": [min(1.0, training_time/500), min(1.0, success_prob)]
+                }
+                trade_df = pd.DataFrame(trade_data)
+                st.write("Training Time vs Success Probability")
+                st.bar_chart(trade_df.set_index("Metric")["Value"])
+            
             # Parameter validation button
             if st.button("Validate Parameters"):
                 st.session_state.training_params['is_validated'] = True
+                
+                # Add current parameter set to history for comparison
+                param_snapshot = st.session_state.training_params.copy()
+                param_snapshot['model_type'] = model_type
+                param_snapshot['timestamp'] = datetime.now().strftime("%H:%M:%S")
+                st.session_state.parameter_history.append(param_snapshot)
+                
                 st.success("✅ Parameters validated! You can now proceed with training.")
                 st.balloons()
     
     # Container for training logs
     training_log_container = st.empty()
+    
+    # Show parameter history comparison if available
+    if 'parameter_history' in st.session_state and len(st.session_state.parameter_history) > 0:
+        with st.expander("Parameter History Comparison", expanded=False):
+            st.write("Compare your current parameters with previously validated configurations")
+            
+            # Create a comparison table
+            history_data = []
+            
+            # Get parameters from session state
+            current_epochs = st.session_state.training_params['epochs']
+            current_batch_size = st.session_state.training_params['batch_size']
+            current_learning_rate_lstm = st.session_state.training_params['learning_rate_lstm']
+            current_total_timesteps = st.session_state.training_params['total_timesteps']
+            current_learning_rate_rl = st.session_state.training_params['learning_rate_rl']
+            current_exploration_rate = st.session_state.training_params['exploration_rate']
+            current_use_existing = st.session_state.training_params['use_existing']
+            current_num_samples = st.session_state.training_params['num_samples']
+            current_use_local = st.session_state.training_params['use_local']
+            
+            # Add current parameters to compare
+            current_params = {
+                "Configuration": "Current (Not Validated)",
+                "Time": datetime.now().strftime("%H:%M:%S"),
+                "Model Type": model_type
+            }
+            
+            # Reuse values from session state instead of local variables
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                # Using session state values directly
+                current_params.update({
+                    "Epochs": st.session_state.training_params['epochs'],
+                    "Batch Size": st.session_state.training_params['batch_size'],
+                    "Learning Rate": st.session_state.training_params['learning_rate_lstm'],
+                    "Data Source": "Existing" if st.session_state.training_params['use_existing'] else 
+                                  f"Generated ({st.session_state.training_params['num_samples']} samples)"
+                })
+            else:
+                # Using session state values directly
+                current_params.update({
+                    "Timesteps": st.session_state.training_params['total_timesteps'],
+                    "Learning Rate": st.session_state.training_params['learning_rate_rl'],
+                    "Exploration": st.session_state.training_params['exploration_rate'],
+                    "Environment": "LocalStack" if st.session_state.training_params['use_local'] else "Real AWS"
+                })
+            
+            history_data.append(current_params)
+            
+            # Add parameter history
+            for i, param_set in enumerate(st.session_state.parameter_history):
+                history_entry = {
+                    "Configuration": f"Config #{i+1}",
+                    "Time": param_set.get('timestamp', ''),
+                    "Model Type": param_set.get('model_type', '')
+                }
+                
+                if param_set.get('model_type', '') == "LSTM Autoencoder (Anomaly Detection)":
+                    history_entry.update({
+                        "Epochs": param_set.get('epochs', ''),
+                        "Batch Size": param_set.get('batch_size', ''),
+                        "Learning Rate": param_set.get('learning_rate_lstm', ''),
+                        "Data Source": "Existing" if param_set.get('use_existing', True) else f"Generated ({param_set.get('num_samples', '')} samples)"
+                    })
+                else:
+                    history_entry.update({
+                        "Timesteps": param_set.get('total_timesteps', ''),
+                        "Learning Rate": param_set.get('learning_rate_rl', ''),
+                        "Exploration": param_set.get('exploration_rate', ''),
+                        "Environment": "LocalStack" if param_set.get('use_local', True) else "Real AWS"
+                    })
+                
+                history_data.append(history_entry)
+            
+            # Display as a table
+            st.table(pd.DataFrame(history_data))
+            
+            # Option to clear history
+            if st.button("Clear Parameter History"):
+                st.session_state.parameter_history = []
+                st.info("Parameter history cleared")
+                st.rerun()
     
     # Training button with validation check
     train_button_disabled = enable_validation and not st.session_state.training_params['is_validated']
