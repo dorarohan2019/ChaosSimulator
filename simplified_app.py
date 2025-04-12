@@ -452,7 +452,8 @@ def display_dashboard():
 
 # Chaos simulation page
 def display_chaos_simulation():
-    st.header("Chaos Simulation")
+    """Display Simulation Orchestration page for running chaos and remediation simulations."""
+    st.header("Simulation Orchestration")
     
     # Simulation control
     col1, col2 = st.columns([3, 1])
@@ -2269,7 +2270,7 @@ def display_model_training():
                 })
 
 # Logs and analysis page
-def display_infrastructure_topology():
+def display_impact_analysis():
     """Display impact analysis of chaos and remediation actions on the system."""
     st.header("Impact Analysis")
     
@@ -2290,9 +2291,10 @@ def display_infrastructure_topology():
             if 'description' in chaos_df.columns:
                 # Extract the main action type from the description
                 chaos_df['action_type'] = chaos_df['description'].apply(
-                    lambda x: next((key for key in ["CPU spike", "Memory leak", "Network partition", 
-                                                  "API rate limiting", "Service termination", 
-                                                  "DNS failure", "Database connection", "Load balancer"] if key in x), "Other")
+                    lambda x: next((key for key in ["CPU", "Memory", "Network", 
+                                                  "API", "Service", 
+                                                  "DNS", "Database", "Load balancer",
+                                                  "EC2", "Lambda", "S3"] if key.lower() in x.lower()), "Other")
                 )
                 
                 # Group by action type and compute average anomaly score (impact)
@@ -2333,7 +2335,9 @@ def display_infrastructure_topology():
                 # Extract the main remediation type from the description
                 remediation_df['remediation_type'] = remediation_df['description'].apply(
                     lambda x: next((key for key in ["Scale", "Restart", "Failover", "Throttle", 
-                                                  "Rollback", "Provision", "Reconfigure", "Isolate"] if key in x), "Other")
+                                                  "Rollback", "Provision", "Reconfigure", "Isolate",
+                                                  "Restore", "Fix", "Increase", "Decrease", "Remove"] 
+                                  if key.lower() in x.lower()), "Other")
                 )
                 
                 # Group by remediation type and compute average improvement score (effectiveness)
@@ -2595,10 +2599,10 @@ def main():
         # App navigation
         page = st.radio("Navigation", [
             "Dashboard", 
-            "Chaos Simulation", 
+            "Simulation Orchestration", 
             "Anomaly Detection", 
             "Model Training", 
-            "Infrastructure Topology",
+            "Impact Analysis",
             "Logs & Analysis"
         ])
         
@@ -2640,14 +2644,14 @@ def main():
     # Main content based on selected page
     if page == "Dashboard":
         display_dashboard()
-    elif page == "Chaos Simulation":
+    elif page == "Simulation Orchestration":
         display_chaos_simulation()
     elif page == "Anomaly Detection":
         display_anomaly_detection()
     elif page == "Model Training":
         display_model_training()
-    elif page == "Infrastructure Topology":
-        display_infrastructure_topology()
+    elif page == "Impact Analysis":
+        display_impact_analysis()
     elif page == "Logs & Analysis":
         display_logs_analysis()
 
