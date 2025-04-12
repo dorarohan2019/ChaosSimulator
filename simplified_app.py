@@ -591,26 +591,36 @@ def display_chaos_simulation():
                 with st.session_state.primary_metrics_chart.container():
                     st.subheader("System Status Metrics")
                     
-                    # Create combined metrics dataframe for system status
-                    system_status_data = pd.DataFrame()
-                    
-                    if not chaos_df.empty:
-                        # For chaos phase metrics
-                        chaos_metrics = chaos_df[['anomaly_score', 'system_health']].rename(
-                            columns={
-                                'anomaly_score': 'ChaosAnomaly',
-                                'system_health': 'ChaosHealth'
-                            })
-                        system_status_data = pd.concat([system_status_data, chaos_metrics])
-                    
-                    if not remediation_df.empty:
-                        # For remediation phase metrics
-                        remediation_metrics = remediation_df[['anomaly_score', 'system_health']].rename(
-                            columns={
-                                'anomaly_score': 'RemediationAnomaly',
-                                'system_health': 'RemediationHealth'
-                            })
-                        system_status_data = pd.concat([system_status_data, remediation_metrics])
+                    # Pre-populate with sample data if no actual data exists
+                    if len(df) == 0:
+                        # Create sample data for demonstration
+                        import numpy as np
+                        
+                        x = np.linspace(0, 10, 20)
+                        sample_data = {
+                            'ChaosAnomaly': np.sin(x) * 0.5 + 0.5,
+                            'ChaosHealth': np.cos(x) * 0.5 + 0.5,
+                            'RemediationAnomaly': np.sin(x+2) * 0.3 + 0.2,
+                            'RemediationHealth': np.cos(x+2) * 0.3 + 0.7
+                        }
+                        system_status_data = pd.DataFrame(sample_data)
+                    else:
+                        # Create separate dataframes for each series
+                        chaos_anomaly = pd.DataFrame()
+                        chaos_health = pd.DataFrame()
+                        remediation_anomaly = pd.DataFrame()
+                        remediation_health = pd.DataFrame()
+                        
+                        if not chaos_df.empty:
+                            chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'ChaosAnomaly'})
+                            chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'ChaosHealth'})
+                        
+                        if not remediation_df.empty:
+                            remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'RemediationAnomaly'})
+                            remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'RemediationHealth'})
+                        
+                        # Merge all the series side by side using their row index
+                        system_status_data = pd.concat([chaos_anomaly, chaos_health, remediation_anomaly, remediation_health], axis=1)
                     
                     # Display combined system status chart
                     if not system_status_data.empty:
@@ -622,33 +632,66 @@ def display_chaos_simulation():
                 with st.session_state.infra_metrics_chart.container():
                     st.subheader("Infrastructure Metrics")
                     
-                    # Create a single combined metrics dataframe for all infrastructure
-                    infra_metrics_data = pd.DataFrame()
-                    
-                    # Define the metrics to use
-                    metrics = {
-                        'cpu_utilization': 'CPU',
-                        'memory_usage': 'Memory', 
-                        'network_latency': 'Network',
-                        'api_error_rate': 'APIError',
-                        'service_availability': 'ServiceAvail'
-                    }
-                    
-                    # Add chaos phase metrics
-                    if not chaos_df.empty:
-                        for metric_key, short_name in metrics.items():
-                            if metric_key in chaos_df.columns:
-                                chaos_df_renamed = chaos_df[[metric_key]].rename(
-                                    columns={metric_key: f'Chaos{short_name}'})
-                                infra_metrics_data = pd.concat([infra_metrics_data, chaos_df_renamed], axis=1)
-                    
-                    # Add remediation phase metrics
-                    if not remediation_df.empty:
-                        for metric_key, short_name in metrics.items():
-                            if metric_key in remediation_df.columns:
-                                remediation_df_renamed = remediation_df[[metric_key]].rename(
-                                    columns={metric_key: f'Remed{short_name}'})
-                                infra_metrics_data = pd.concat([infra_metrics_data, remediation_df_renamed], axis=1)
+                    # Pre-populate with sample data if no actual data exists
+                    if len(df) == 0:
+                        # Create sample data for demonstration
+                        import numpy as np
+                        
+                        x = np.linspace(0, 10, 20)
+                        # Create sample infrastructure metrics data
+                        sample_data = {
+                            'ChaosCPU': np.sin(x) * 30 + 70,         # CPU utilization 40-100%
+                            'RemedCPU': np.sin(x+2) * 10 + 30,       # CPU utilization 20-40%
+                            'ChaosMemory': np.cos(x) * 20 + 70,      # Memory usage 50-90%
+                            'RemedMemory': np.cos(x+2) * 10 + 40,    # Memory usage 30-50%
+                            'ChaosNetwork': np.sin(x) * 900 + 1000,  # Network latency 100-1900ms
+                            'RemedNetwork': np.sin(x+2) * 50 + 70,   # Network latency 20-120ms
+                            'ChaosAPIError': np.sin(x) * 0.2 + 0.25, # API error rate 0.05-0.45
+                            'RemedAPIError': np.sin(x+2) * 0.03 + 0.04, # API error rate 0.01-0.07
+                            'ChaosServiceAvail': np.cos(x) * 0.2 + 0.75, # Service avail 0.55-0.95
+                            'RemedServiceAvail': np.cos(x+2) * 0.05 + 0.94 # Service avail 0.89-0.99
+                        }
+                        infra_metrics_data = pd.DataFrame(sample_data)
+                    else:
+                        # Initialize infrastructure metrics dataframe
+                        infra_metrics_data = pd.DataFrame()
+                        
+                        # Define the metrics to use with shorter names
+                        metrics = {
+                            'cpu_utilization': 'CPU',
+                            'memory_usage': 'Memory', 
+                            'network_latency': 'Network',
+                            'api_error_rate': 'APIError',
+                            'service_availability': 'ServiceAvail'
+                        }
+                        
+                        # Create separate dataframes for each metric in each phase
+                        chaos_metrics = {}
+                        remed_metrics = {}
+                        
+                        # Extract metrics from chaos phase
+                        if not chaos_df.empty:
+                            for metric_key, short_name in metrics.items():
+                                if metric_key in chaos_df.columns:
+                                    chaos_metrics[short_name] = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos{short_name}'})
+                        
+                        # Extract metrics from remediation phase
+                        if not remediation_df.empty:
+                            for metric_key, short_name in metrics.items():
+                                if metric_key in remediation_df.columns:
+                                    remed_metrics[short_name] = remediation_df[[metric_key]].rename(columns={metric_key: f'Remed{short_name}'})
+                        
+                        # Combine all metrics into one dataframe
+                        metric_dfs = []
+                        for short_name in metrics.values():
+                            if short_name in chaos_metrics:
+                                metric_dfs.append(chaos_metrics[short_name])
+                            if short_name in remed_metrics:
+                                metric_dfs.append(remed_metrics[short_name])
+                                
+                        # Combine all metrics side by side 
+                        if metric_dfs:
+                            infra_metrics_data = pd.concat(metric_dfs, axis=1)
                     
                     # Display the combined infrastructure metrics chart
                     if not infra_metrics_data.empty:
