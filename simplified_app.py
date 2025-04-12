@@ -693,10 +693,31 @@ def display_chaos_simulation():
         }
         delay = speed_map[simulation_speed]
         
+        # Add Slack token input
+        slack_token = st.text_input("Slack API Token (optional)", type="password", 
+                                  help="API token for Slack notifications")
+        if "slack_token" not in st.session_state:
+            st.session_state.slack_token = ""
+        
+        # Save token to session state when entered
+        if slack_token:
+            st.session_state.slack_token = slack_token
+        
         # Approval workflow
         if not st.session_state.approval_requested:
             if st.button("Request Simulation Approval"):
                 st.session_state.approval_requested = True
+                
+                # Send Slack notification if token available
+                if st.session_state.slack_token:
+                    with st.spinner("Sending approval request to Slack..."):
+                        message_ts = request_approval(st.session_state.slack_token)
+                        if message_ts:
+                            st.session_state.approval_message_ts = message_ts
+                            st.success("Approval request sent to Slack.")
+                        else:
+                            st.warning("Failed to send approval request to Slack. Proceeding with local approval.")
+                
                 st.success("Approval requested. Please confirm to proceed.")
                 st.rerun()
     
@@ -718,6 +739,13 @@ def display_chaos_simulation():
         with confirm_col1:
             if st.button("✅ Approve Simulation"):
                 st.session_state.simulation_running = True
+                
+                # Send notification if token exists
+                if st.session_state.slack_token:
+                    with st.spinner("Sending simulation start notification..."):
+                        # Send notification about simulation start
+                        notify_simulation_start(st.session_state.slack_token, num_actions)
+                
                 st.rerun()
         
         with confirm_col2:
@@ -1390,6 +1418,32 @@ def display_chaos_simulation():
             st.session_state.simulation_running = False
             st.session_state.approval_requested = False
             st.session_state.simulation_complete = True
+            
+            # Send completion notification if token exists
+            if st.session_state.slack_token:
+                # Prepare simulation results summary for the notification
+                results = {
+                    'num_vulnerabilities': len(st.session_state.chaos_actions),
+                    'num_remediations': len(st.session_state.remediation_actions),
+                    'avg_risk_score': sum(action.get('anomaly_score', 0) for action in st.session_state.chaos_actions) / 
+                                    max(1, len(st.session_state.chaos_actions)),
+                    'effectiveness_pct': 90.0  # Placeholder for more complex calculation
+                }
+                
+                # If there's enough data, calculate actual effectiveness percentage
+                if st.session_state.chaos_actions and st.session_state.remediation_actions:
+                    # Compare anomaly scores before and after remediation
+                    avg_anomaly_before = sum(action.get('anomaly_score', 0) for action in st.session_state.chaos_actions) / len(st.session_state.chaos_actions)
+                    avg_anomaly_after = sum(action.get('anomaly_after', 0) for action in st.session_state.remediation_actions) / len(st.session_state.remediation_actions)
+                    
+                    if avg_anomaly_before > 0:
+                        # Calculate reduction percentage
+                        reduction_pct = ((avg_anomaly_before - avg_anomaly_after) / avg_anomaly_before) * 100
+                        results['effectiveness_pct'] = min(100.0, max(0.0, reduction_pct))
+                
+                with st.spinner("Sending simulation completion notification..."):
+                    notify_simulation_complete(st.session_state.slack_token, results)
+            
             if 'simulation_state' in st.session_state:
                 del st.session_state.simulation_state
             if 'current_step' in st.session_state:
