@@ -201,11 +201,37 @@ def save_model(model_type, model_data):
         with open(filename, 'wb') as f:
             pickle.dump(model_data, f)
         
-        # Update latest model link
-        latest_link = f"models/{model_type}_latest.pkl"
-        if os.path.exists(latest_link):
-            os.remove(latest_link)
-        os.symlink(filename, latest_link)
+        # Create a copy with the "latest" name instead of using symlinks
+        latest_filename = f"models/{model_type}_latest.pkl"
+        import shutil
+        shutil.copy2(filename, latest_filename)
+        
+        # Create a json index file to track all models
+        index_file = "models/model_index.json"
+        model_index = {}
+        
+        # Load existing index if it exists
+        if os.path.exists(index_file):
+            try:
+                with open(index_file, 'r') as f:
+                    model_index = json.load(f)
+            except:
+                # Start with empty index if the file is corrupted
+                model_index = {}
+        
+        # Add or update the model entry
+        if model_type not in model_index:
+            model_index[model_type] = {}
+        
+        model_index[model_type]['latest'] = {
+            'file': filename,
+            'timestamp': timestamp,
+            'trained_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Save the updated index
+        with open(index_file, 'w') as f:
+            json.dump(model_index, f, indent=2)
         
         # Update session state
         st.session_state.model_statuses[model_type] = 'Trained'
@@ -228,8 +254,27 @@ def load_predictive_model():
             logger.info("Loaded anomaly detection model")
             return model
         else:
-            logger.warning("No anomaly detection model found")
-            return None
+            # Check if we have any models in the models directory
+            import glob
+            model_files = glob.glob("models/anomaly_model_*.pkl")
+            if model_files:
+                # Use the most recent one based on the filename pattern (which includes timestamp)
+                latest_file = sorted(model_files)[-1]
+                logger.info(f"Found alternative model file: {latest_file}")
+                import pickle
+                with open(latest_file, 'rb') as f:
+                    model = pickle.load(f)
+                
+                # Create the latest link
+                import shutil
+                shutil.copy2(latest_file, latest_model_path)
+                
+                st.session_state.model_statuses['anomaly_model'] = 'Loaded'
+                logger.info(f"Loaded anomaly detection model from {latest_file}")
+                return model
+            else:
+                logger.warning("No anomaly detection model found")
+                return None
     except Exception as e:
         logger.error(f"Failed to load anomaly detection model: {str(e)}")
         return None
@@ -239,8 +284,8 @@ def load_agents():
     chaos_env = MockEnvironment()
     remediation_env = MockEnvironment()
     
+    # Try to load chaos agent
     try:
-        # Try to load chaos agent
         chaos_path = "models/chaos_agent_latest.pkl"
         if os.path.exists(chaos_path):
             import pickle
@@ -249,11 +294,30 @@ def load_agents():
             chaos_env.model = chaos_model
             st.session_state.model_statuses['chaos_agent'] = 'Trained'
             logger.info("Loaded chaos agent model")
+        else:
+            # Look for any chaos agent model files
+            import glob
+            chaos_files = glob.glob("models/chaos_agent_*.pkl")
+            if chaos_files:
+                # Use the most recent one
+                latest_file = sorted(chaos_files)[-1]
+                logger.info(f"Found alternative chaos agent file: {latest_file}")
+                import pickle
+                with open(latest_file, 'rb') as f:
+                    chaos_model = pickle.load(f)
+                
+                # Create the latest link
+                import shutil
+                shutil.copy2(latest_file, chaos_path)
+                
+                chaos_env.model = chaos_model
+                st.session_state.model_statuses['chaos_agent'] = 'Trained'
+                logger.info(f"Loaded chaos agent model from {latest_file}")
     except Exception as e:
         logger.error(f"Failed to load chaos agent: {str(e)}")
     
+    # Try to load remediation agent
     try:
-        # Try to load remediation agent
         remediation_path = "models/remediation_agent_latest.pkl"
         if os.path.exists(remediation_path):
             import pickle
@@ -262,6 +326,25 @@ def load_agents():
             remediation_env.model = remediation_model
             st.session_state.model_statuses['remediation_agent'] = 'Trained'
             logger.info("Loaded remediation agent model")
+        else:
+            # Look for any remediation agent model files
+            import glob
+            remediation_files = glob.glob("models/remediation_agent_*.pkl")
+            if remediation_files:
+                # Use the most recent one
+                latest_file = sorted(remediation_files)[-1]
+                logger.info(f"Found alternative remediation agent file: {latest_file}")
+                import pickle
+                with open(latest_file, 'rb') as f:
+                    remediation_model = pickle.load(f)
+                
+                # Create the latest link
+                import shutil
+                shutil.copy2(latest_file, remediation_path)
+                
+                remediation_env.model = remediation_model
+                st.session_state.model_statuses['remediation_agent'] = 'Trained'
+                logger.info(f"Loaded remediation agent model from {latest_file}")
     except Exception as e:
         logger.error(f"Failed to load remediation agent: {str(e)}")
     
@@ -523,23 +606,16 @@ def display_chaos_simulation():
                 elif latest_action_type == "Remediation":
                     st.session_state.infra_topology.apply_remediation_action(latest_action_desc)
                 
-                # Show action log below chart
-                actions_df = df[['timestamps', 'action_type', 'action_description']]
-                actions_df = actions_df.sort_values('timestamps', ascending=False)
+                # Keep track of actions but don't display the full timeline
+                # Just update the most recent action in the status container
+                last_row = df.iloc[-1]
+                time_str = last_row['timestamps'].strftime("%H:%M:%S")
+                action_type = last_row['action_type']
+                action_desc = last_row['action_description']
                 
-                # Format the action log as a table
-                st.subheader("Action Timeline")
-                action_table = ""
-                for idx, row in actions_df.iterrows():
-                    time_str = row['timestamps'].strftime("%H:%M:%S")
-                    action_type = row['action_type']
-                    action_desc = row['action_description']
-                    
-                    # Icon based on action type
-                    icon = "🔴" if action_type == "Chaos" else "🟢"
-                    action_table += f"**{time_str}** {icon} **{action_type}**: {action_desc}\n\n"
-                
-                st.markdown(action_table)
+                # Icon based on action type
+                icon = "🔴" if action_type == "Chaos" else "🟢"
+                status_container.info(f"Most recent action ({time_str}): {icon} **{action_type}**: {action_desc}")
         
         # Simulation loop
         try:
