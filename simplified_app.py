@@ -590,50 +590,45 @@ def display_chaos_simulation():
                 # First chart: Primary metrics (anomaly score and system health)
                 with st.session_state.primary_metrics_chart.container():
                     st.subheader("System Status Metrics")
+                    
+                    # Create combined metrics dataframes
+                    anomaly_data = pd.DataFrame()
+                    health_data = pd.DataFrame()
+                    
+                    if not chaos_df.empty:
+                        # For anomaly score during chaos phase (red)
+                        chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'ChaosAnomaly'})
+                        anomaly_data = pd.concat([anomaly_data, chaos_anomaly])
+                    
+                    if not remediation_df.empty:
+                        # For anomaly score during remediation phase (green)
+                        remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'RemediationAnomaly'})
+                        anomaly_data = pd.concat([anomaly_data, remediation_anomaly])
+                    
+                    # Display anomaly score chart
                     st.write("##### Anomaly Score")
+                    if not anomaly_data.empty:
+                        st.line_chart(anomaly_data)
+                    else:
+                        st.info("No anomaly data available yet.")
                     
-                    # Create separate charts for Chaos and Remediation phases
-                    col1, col2 = st.columns(2)
+                    # System Health metrics
+                    if not chaos_df.empty:
+                        # For system health during chaos phase (orange)
+                        chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'ChaosHealth'})
+                        health_data = pd.concat([health_data, chaos_health])
                     
-                    with col1:
-                        st.markdown("**Chaos Phase (Red)**")
-                        if not chaos_df.empty:
-                            # For anomaly score during chaos phase (red)
-                            chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'ChaosAnomaly'})
-                            st.line_chart(chaos_anomaly, color=["#FF0000"])
-                        else:
-                            st.info("No chaos phase data available yet.")
+                    if not remediation_df.empty:
+                        # For system health during remediation phase (blue)
+                        remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'RemediationHealth'})
+                        health_data = pd.concat([health_data, remediation_health])
                     
-                    with col2:
-                        st.markdown("**Remediation Phase (Green)**")
-                        if not remediation_df.empty:
-                            # For anomaly score during remediation phase (green)
-                            remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'RemediationAnomaly'})
-                            st.line_chart(remediation_anomaly, color=["#008000"])
-                        else:
-                            st.info("No remediation phase data available yet.")
-                    
+                    # Display system health chart
                     st.write("##### System Health")
-                    
-                    col3, col4 = st.columns(2)
-                    
-                    with col3:
-                        st.markdown("**Chaos Phase (Orange)**")
-                        if not chaos_df.empty:
-                            # For system health during chaos phase (orange)
-                            chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'ChaosHealth'})
-                            st.line_chart(chaos_health, color=["#FFA500"])
-                        else:
-                            st.info("No chaos phase data available yet.")
-                    
-                    with col4:
-                        st.markdown("**Remediation Phase (Blue)**")
-                        if not remediation_df.empty:
-                            # For system health during remediation phase (blue)
-                            remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'RemediationHealth'})
-                            st.line_chart(remediation_health, color=["#0000FF"])
-                        else:
-                            st.info("No remediation phase data available yet.")
+                    if not health_data.empty:
+                        st.line_chart(health_data)
+                    else:
+                        st.info("No system health data available yet.")
                 
                 # Second chart: Infrastructure metrics
                 with st.session_state.infra_metrics_chart.container():
@@ -648,29 +643,28 @@ def display_chaos_simulation():
                         'service_availability': 'Service Availability'
                     }
                     
-                    # Show each metric with separate chaos/remediation charts
+                    # Show each metric on a single chart with both phases
                     for metric_key, metric_name in metrics.items():
                         # Check if we have data for this metric
                         if metric_key in df.columns and any(val != 0 for val in df[metric_key]):
                             st.write(f"##### {metric_name}")
                             
-                            metric_col1, metric_col2 = st.columns(2)
+                            # Create combined metric dataframe
+                            combined_metric = pd.DataFrame()
                             
-                            with metric_col1:
-                                st.markdown(f"**Chaos Phase (Red)**")
-                                if not chaos_df.empty:
-                                    chaos_metric = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos{metric_name.replace(" ", "")}'})
-                                    st.line_chart(chaos_metric, color=["#FF0000"])
-                                else:
-                                    st.info("No chaos phase data available yet.")
+                            if not chaos_df.empty:
+                                chaos_metric = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos{metric_name.replace(" ", "")}'})
+                                combined_metric = pd.concat([combined_metric, chaos_metric])
                             
-                            with metric_col2:
-                                st.markdown(f"**Remediation Phase (Green)**")
-                                if not remediation_df.empty:
-                                    remediation_metric = remediation_df[[metric_key]].rename(columns={metric_key: f'Remediation{metric_name.replace(" ", "")}'})
-                                    st.line_chart(remediation_metric, color=["#008000"])
-                                else:
-                                    st.info("No remediation phase data available yet.")
+                            if not remediation_df.empty:
+                                remediation_metric = remediation_df[[metric_key]].rename(columns={metric_key: f'Remediation{metric_name.replace(" ", "")}'})
+                                combined_metric = pd.concat([combined_metric, remediation_metric])
+                            
+                            if not combined_metric.empty:
+                                # Display the combined chart
+                                st.line_chart(combined_metric)
+                            else:
+                                st.info("No data available for this metric yet.")
                 
                 # Get the most recent action details
                 latest_idx = len(df) - 1
