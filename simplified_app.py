@@ -598,7 +598,7 @@ def display_chaos_simulation():
                         st.markdown("**Chaos Phase (Red)**")
                         if not chaos_df.empty:
                             # For anomaly score during chaos phase (red)
-                            chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'Chaos: Anomaly Score'})
+                            chaos_anomaly = chaos_df[['anomaly_score']].rename(columns={'anomaly_score': 'ChaosAnomaly'})
                             st.line_chart(chaos_anomaly, color=["#FF0000"])
                         else:
                             st.info("No chaos phase data available yet.")
@@ -607,7 +607,7 @@ def display_chaos_simulation():
                         st.markdown("**Remediation Phase (Green)**")
                         if not remediation_df.empty:
                             # For anomaly score during remediation phase (green)
-                            remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'Remediation: Anomaly Score'})
+                            remediation_anomaly = remediation_df[['anomaly_score']].rename(columns={'anomaly_score': 'RemediationAnomaly'})
                             st.line_chart(remediation_anomaly, color=["#008000"])
                         else:
                             st.info("No remediation phase data available yet.")
@@ -620,7 +620,7 @@ def display_chaos_simulation():
                         st.markdown("**Chaos Phase (Orange)**")
                         if not chaos_df.empty:
                             # For system health during chaos phase (orange)
-                            chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'Chaos: System Health'})
+                            chaos_health = chaos_df[['system_health']].rename(columns={'system_health': 'ChaosHealth'})
                             st.line_chart(chaos_health, color=["#FFA500"])
                         else:
                             st.info("No chaos phase data available yet.")
@@ -629,7 +629,7 @@ def display_chaos_simulation():
                         st.markdown("**Remediation Phase (Blue)**")
                         if not remediation_df.empty:
                             # For system health during remediation phase (blue)
-                            remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'Remediation: System Health'})
+                            remediation_health = remediation_df[['system_health']].rename(columns={'system_health': 'RemediationHealth'})
                             st.line_chart(remediation_health, color=["#0000FF"])
                         else:
                             st.info("No remediation phase data available yet.")
@@ -658,7 +658,7 @@ def display_chaos_simulation():
                             with metric_col1:
                                 st.markdown(f"**Chaos Phase (Red)**")
                                 if not chaos_df.empty:
-                                    chaos_metric = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos: {metric_name}'})
+                                    chaos_metric = chaos_df[[metric_key]].rename(columns={metric_key: f'Chaos{metric_name.replace(" ", "")}'})
                                     st.line_chart(chaos_metric, color=["#FF0000"])
                                 else:
                                     st.info("No chaos phase data available yet.")
@@ -666,7 +666,7 @@ def display_chaos_simulation():
                             with metric_col2:
                                 st.markdown(f"**Remediation Phase (Green)**")
                                 if not remediation_df.empty:
-                                    remediation_metric = remediation_df[[metric_key]].rename(columns={metric_key: f'Remediation: {metric_name}'})
+                                    remediation_metric = remediation_df[[metric_key]].rename(columns={metric_key: f'Remediation{metric_name.replace(" ", "")}'})
                                     st.line_chart(remediation_metric, color=["#008000"])
                                 else:
                                     st.info("No remediation phase data available yet.")
