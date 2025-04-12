@@ -20,6 +20,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger("dashboard")
 
+# Initialize session state for model tracking
+if 'model_statuses' not in st.session_state:
+    st.session_state.model_statuses = {
+        'anomaly_model': 'Not Loaded',
+        'chaos_agent': 'Not Trained',
+        'remediation_agent': 'Not Trained'
+    }
+
 # Page configuration
 st.set_page_config(
     page_title="AWS Chaos Engineering Dashboard",
@@ -197,13 +205,25 @@ def display_dashboard():
         st.info("**LocalStack Status**: Running")
         
     with col2:
-        st.info("**Anomaly Model**: Not Loaded")
+        model_status = st.session_state.model_statuses['anomaly_model']
+        if model_status == 'Not Loaded':
+            st.info(f"**Anomaly Model**: {model_status}")
+        else:
+            st.success(f"**Anomaly Model**: {model_status}")
         
     with col3:
-        st.info("**Chaos Agent**: Not Trained")
+        agent_status = st.session_state.model_statuses['chaos_agent']
+        if agent_status == 'Not Trained':
+            st.info(f"**Chaos Agent**: {agent_status}")
+        else:
+            st.success(f"**Chaos Agent**: {agent_status}")
         
     with col4:
-        st.info("**Remediation Agent**: Not Trained")
+        agent_status = st.session_state.model_statuses['remediation_agent']
+        if agent_status == 'Not Trained':
+            st.info(f"**Remediation Agent**: {agent_status}")
+        else:
+            st.success(f"**Remediation Agent**: {agent_status}")
     
     # Generate current state if none exists
     if st.session_state.current_state is None:
