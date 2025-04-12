@@ -412,14 +412,14 @@ def check_required_files():
     return True
 
 # Slack integration functions
-def send_slack_message(slack_token, message, channel=SLACK_CHANNEL_ID):
+def send_slack_message(slack_token, message, channel=SLACK_CHANNEL_NAME):
     """
     Send a message to a Slack channel
     
     Args:
         slack_token (str): Slack API token
         message (str): Message to send
-        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
+        channel (str): Channel name to send to (default: SLACK_CHANNEL_NAME)
         
     Returns:
         str: Message timestamp if successful, None otherwise
@@ -457,13 +457,13 @@ def send_slack_message(slack_token, message, channel=SLACK_CHANNEL_ID):
         logger.error(f"Error sending Slack message: {str(e)}")
         return None
 
-def request_approval(slack_token, channel=SLACK_CHANNEL_ID):
+def request_approval(slack_token, channel=SLACK_CHANNEL_NAME):
     """
     Request approval for a chaos simulation
     
     Args:
         slack_token (str): Slack API token
-        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
+        channel (str): Channel name to send to (default: SLACK_CHANNEL_NAME)
         
     Returns:
         str: Message timestamp if successful, None otherwise
@@ -537,14 +537,14 @@ def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_NAME):
         logger.error(f"Error checking for approval: {str(e)}")
         return None
 
-def notify_simulation_start(slack_token, num_actions, channel=SLACK_CHANNEL_ID):
+def notify_simulation_start(slack_token, num_actions, channel=SLACK_CHANNEL_NAME):
     """
     Notify that a simulation has started
     
     Args:
         slack_token (str): Slack API token
         num_actions (int): Number of chaos actions in the simulation
-        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
+        channel (str): Channel name to send to (default: SLACK_CHANNEL_NAME)
     """
     message = f"""
 🚀 *Security Chaos Simulation Started* 🚀
@@ -558,14 +558,14 @@ Monitor progress in the dashboard for real-time metrics.
 """
     send_slack_message(slack_token, message, channel)
 
-def notify_simulation_complete(slack_token, results, channel=SLACK_CHANNEL_ID):
+def notify_simulation_complete(slack_token, results, channel=SLACK_CHANNEL_NAME):
     """
     Notify that a simulation has completed with results
     
     Args:
         slack_token (str): Slack API token
         results (dict): Simulation results
-        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
+        channel (str): Channel name to send to (default: SLACK_CHANNEL_NAME)
     """
     # Extract relevant metrics
     num_vulns = results.get('num_vulnerabilities', 0)
@@ -709,8 +709,8 @@ def display_chaos_simulation():
             
         # Display Slack configuration info
         if st.session_state.slack_token:
-            st.success(f"Using Slack channel ID: {SLACK_CHANNEL_ID}")
-            st.info(f"Using Slack channel name: {SLACK_CHANNEL_NAME} for approval checks")
+            st.success(f"Using Slack channel name: {SLACK_CHANNEL_NAME} for sending messages")
+            st.info(f"Using Slack channel ID: {SLACK_CHANNEL_ID} for approval checks")
             st.info("Slack is the only approval method for this simulation")
         
         # Approval workflow
