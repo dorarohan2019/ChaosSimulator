@@ -11,7 +11,7 @@ from collections import deque
 import requests  # For Slack API fallback if slack_sdk is not available
 
 # Define Slack constants
-SLACK_CHANNEL = "general"  # Default channel, can be overridden
+SLACK_CHANNEL = "#chaos-engineering"  # Updated channel with # prefix
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
 # Try to import Slack SDK, but provide fallback if not available
@@ -428,7 +428,7 @@ def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
         
     try:
         if SLACK_SDK_AVAILABLE:
-            # Use slack_sdk if available
+            # Use slack_sdk if available - using the format from user's code
             slack_client = WebClient(token=slack_token)
             response = slack_client.chat_postMessage(channel=channel, text=message)
             return response["ts"]
