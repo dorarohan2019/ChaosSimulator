@@ -722,41 +722,42 @@ def display_chaos_simulation():
                         st.write("**Y-axis:** Infrastructure Metric Values (scaled appropriately per metric)")
                         st.line_chart(infra_metrics)
                         
-                        # Add explanatory notes and interpretation guidance
+                        # Add explanatory notes and interpretation guidance with clear security focus
                         st.caption("""
-                        **Infrastructure Metrics:**
-                        - **CPU Utilization (%)**: Higher values during chaos phase indicate increased CPU load, dropping during remediation
-                        - **Memory Usage (%)**: Tracks memory consumption patterns throughout the simulation
-                        - **Network Latency (ms/10)**: Shows communication delays (divided by 10 for scale)
-                        - **API Error Rate (×100)**: Error rates (multiplied by 100 for visibility)
-                        - **Service Availability (%)**: Overall service accessibility
+                        **Security Impact on Infrastructure Metrics:**
+                        - **CPU Utilization (%)**: Shows increased processing load during security incidents (brute force attacks, DDoS)
+                        - **Memory Usage (%)**: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)
+                        - **Network Latency (ms/10)**: Network delays resulting from security incidents (scaled down for visibility)
+                        - **API Error Rate (×100)**: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)
+                        - **Service Availability (%)**: Service uptime impacted by security breaches
                         
-                        The graph shows a continuous view of system infrastructure throughout chaos and remediation phases.
+                        This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.
                         """)
                         
-                        # Add color point indicators for major metric spikes
+                        # Add security-focused color point indicators for major metric spikes
                         col1, col2 = st.columns(2)
                         with col1:
                             max_cpu_idx = df['cpu_utilization'].idxmax()
                             max_cpu_val = df['cpu_utilization'].max()
                             if max_cpu_idx is not None and max_cpu_val > 80:
-                                st.info(f"🔴 Maximum CPU utilization ({max_cpu_val:.1f}%) at step {max_cpu_idx}")
+                                action_at_max = df.iloc[max_cpu_idx]['action_description'] if max_cpu_idx < len(df) else ""
+                                st.info(f"🔴 Critical CPU spike ({max_cpu_val:.1f}%) at step {max_cpu_idx} - Potential DoS attack")
                                 
                             max_api_error_idx = df['api_error_rate'].idxmax()
                             max_api_error_val = df['api_error_rate'].max() * 100
                             if max_api_error_idx is not None and max_api_error_val > 20:
-                                st.info(f"🔴 Maximum API error rate ({max_api_error_val:.1f}%) at step {max_api_error_idx}")
+                                st.info(f"🔴 Critical API failure ({max_api_error_val:.1f}%) at step {max_api_error_idx} - Likely injection attack")
                                 
                         with col2:
                             max_latency_idx = df['network_latency'].idxmax()
                             max_latency_val = df['network_latency'].max()
                             if max_latency_idx is not None and max_latency_val > 500:
-                                st.info(f"🔴 Maximum network latency ({max_latency_val:.0f} ms) at step {max_latency_idx}")
+                                st.info(f"🔴 Network disruption ({max_latency_val:.0f} ms) at step {max_latency_idx} - Possible DDoS activity")
                                 
                             min_availability_idx = df['service_availability'].idxmin()
                             min_availability_val = df['service_availability'].min() * 100
                             if min_availability_idx is not None and min_availability_val < 70:
-                                st.info(f"🔴 Minimum service availability ({min_availability_val:.1f}%) at step {min_availability_idx}")
+                                st.info(f"🔴 Service degradation ({min_availability_val:.1f}%) at step {min_availability_idx} - Security breach impact")
                     else:
                         st.info("No infrastructure metrics data available yet. Run a simulation to generate data.")
                 
@@ -792,30 +793,56 @@ def display_chaos_simulation():
             progress_bar.progress(1.0)
             status_container.success("✅ Simulation complete!")
             
-            # Display summary of simulation results
-            st.subheader("Simulation Results Summary")
+            # Display summary of simulation results with security focus
+            st.subheader("Security Simulation Results Summary")
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write("### Chaos Actions")
-                st.write(f"**Total chaos actions:** {len(st.session_state.chaos_actions)}")
+                st.write("### Security Vulnerabilities")
+                st.write(f"**Total security vulnerabilities introduced:** {len(st.session_state.chaos_actions)}")
                 if st.session_state.chaos_actions:
-                    st.write("**Average anomaly score:** {:.4f}".format(
-                        sum(action['anomaly_score'] for action in st.session_state.chaos_actions) / 
-                        max(1, len(st.session_state.chaos_actions))
-                    ))
+                    avg_score = sum(action['anomaly_score'] for action in st.session_state.chaos_actions) / max(1, len(st.session_state.chaos_actions))
+                    st.write("**Average security risk score:** {:.4f}".format(avg_score))
+                    
+                    # Add severity classification
+                    if avg_score > 0.8:
+                        severity = "Critical"
+                        color = "red"
+                    elif avg_score > 0.6:
+                        severity = "High"
+                        color = "orange" 
+                    elif avg_score > 0.4:
+                        severity = "Medium"
+                        color = "yellow"
+                    else:
+                        severity = "Low"
+                        color = "green"
+                        
+                    st.markdown(f"**Risk severity:** <span style='color:{color}'>{severity}</span>", unsafe_allow_html=True)
             
             with col2:
-                st.write("### Remediation Actions")
-                st.write(f"**Total remediation actions:** {len(st.session_state.remediation_actions)}")
+                st.write("### Security Mitigations")
+                st.write(f"**Total security mitigations applied:** {len(st.session_state.remediation_actions)}")
                 if st.session_state.remediation_actions:
                     avg_improvement = sum(action['improvement'] for action in st.session_state.remediation_actions) / len(st.session_state.remediation_actions)
-                    st.write(f"**Average improvement:** {avg_improvement:.4f}")
+                    st.write(f"**Average security improvement:** {avg_improvement:.4f}")
                     
                     # Calculate effectiveness percentage
                     effectiveness = sum(1 for action in st.session_state.remediation_actions 
                                       if action['anomaly_after'] < action['anomaly_before']) / len(st.session_state.remediation_actions) * 100
-                    st.write(f"**Remediation effectiveness:** {effectiveness:.1f}%")
+                    st.write(f"**Mitigation effectiveness:** {effectiveness:.1f}%")
+                    
+                    # Add remediation success rating
+                    if effectiveness > 90:
+                        rating = "Excellent"
+                    elif effectiveness > 75:
+                        rating = "Good"
+                    elif effectiveness > 50:
+                        rating = "Fair"
+                    else:
+                        rating = "Poor"
+                        
+                    st.write(f"**Remediation rating:** {rating}")
             
             # Add a link to the Impact Analysis tab for viewing the simulation effects
             st.info("""
