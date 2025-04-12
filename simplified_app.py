@@ -482,14 +482,14 @@ Reply with:
 """
     return send_slack_message(slack_token, message, channel)
 
-def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_NAME):
+def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_ID):
     """
     Check for approval response
     
     Args:
         slack_token (str): Slack API token
         original_ts (str): Original message timestamp
-        channel (str): Channel name to check (default: SLACK_CHANNEL_NAME)
+        channel (str): Channel ID to check (default: SLACK_CHANNEL_ID)
         
     Returns:
         str: 'approved', 'denied', or None if no response
@@ -762,7 +762,7 @@ def display_chaos_simulation():
                     approval_status = check_for_approval(
                         st.session_state.slack_token, 
                         st.session_state.approval_message_ts,
-                        SLACK_CHANNEL_NAME
+                        SLACK_CHANNEL_ID
                     )
                     
                     if approval_status == "approved":
@@ -782,17 +782,20 @@ def display_chaos_simulation():
                     elif st.session_state.check_count % 5 == 0:  # Only show this message every few checks
                         st.info(f"Auto-checking for approval in Slack... (waiting for 'approve' or 'deny' response in channel)")
             
-            # Add manual refresh option
-            st.info("Waiting for approval via Slack. The system will automatically detect your approval.")
+            # Add manual refresh option but also note auto-checking
+            st.info("Waiting for approval via Slack. The system is continuously checking for your approval.")
+            
+            # Display a spinner to show that we're actively checking
+            with st.empty():
+                if st.session_state.check_count % 2 == 0:  # Alternate the message
+                    st.info("🔄 Auto-checking for Slack approval...")
+                else:
+                    st.info("⏳ Waiting for 'approve' message in Slack...")
+                    
+            # Still provide manual option
             if st.button("Force Manual Check Now"):
                 st.session_state.last_approval_check = 0  # Force immediate check
                 st.rerun()
-                
-            # Add auto-refresh to force page to check Slack automatically
-            st.markdown("""
-            <meta http-equiv="refresh" content="3">
-            <p style="font-size:0.8em; color:#888;">Auto-refreshing to check for Slack approval...</p>
-            """, unsafe_allow_html=True)
         else:
             st.warning("Slack approval message not sent properly. Please try requesting approval again.")
     
