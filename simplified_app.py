@@ -450,7 +450,7 @@ def display_dashboard():
         if st.session_state.current_state:
             st.json(st.session_state.current_state)
 
-# Chaos simulation page
+# Simulation orchestration page
 def display_chaos_simulation():
     """Display Simulation Orchestration page for running chaos and remediation simulations."""
     st.header("Simulation Orchestration")
@@ -511,8 +511,8 @@ def display_chaos_simulation():
                 st.session_state.approval_requested = False
                 st.rerun()
     
-    # Run simulation if approved
-    if st.session_state.simulation_running:
+    # Run simulation if approved or display previous results if completed
+    if st.session_state.simulation_running or st.session_state.simulation_complete:
         st.subheader("Simulation Progress")
         progress_bar = st.progress(0)
         
@@ -751,197 +751,248 @@ def display_chaos_simulation():
                 icon = "🔴" if action_type == "Chaos" else "🟢"
                 status_container.info(f"Most recent action ({time_str}): {icon} **{action_type}**: {action_desc}")
         
-        # Simulation loop
-        try:
-            for step in range(st.session_state.current_step, num_actions):
-                st.session_state.current_step = step
-                progress_bar.progress((step + 1) / (num_actions * 2))  # Account for both chaos and remediation steps
+        # If simulation was already completed, just show the final results
+        if st.session_state.simulation_complete and not st.session_state.simulation_running:
+            # Update charts with existing data
+            update_metrics_chart()
+            
+            # Show complete status
+            progress_bar.progress(1.0)
+            status_container.success("✅ Simulation complete!")
+            
+            # Display summary of simulation results
+            st.subheader("Simulation Results Summary")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("### Chaos Actions")
+                st.write(f"**Total chaos actions:** {len(st.session_state.chaos_actions)}")
+                if st.session_state.chaos_actions:
+                    st.write("**Average anomaly score:** {:.4f}".format(
+                        sum(action['anomaly_score'] for action in st.session_state.chaos_actions) / 
+                        max(1, len(st.session_state.chaos_actions))
+                    ))
+            
+            with col2:
+                st.write("### Remediation Actions")
+                st.write(f"**Total remediation actions:** {len(st.session_state.remediation_actions)}")
+                if st.session_state.remediation_actions:
+                    avg_improvement = sum(action['improvement'] for action in st.session_state.remediation_actions) / len(st.session_state.remediation_actions)
+                    st.write(f"**Average improvement:** {avg_improvement:.4f}")
+                    
+                    # Calculate effectiveness percentage
+                    effectiveness = sum(1 for action in st.session_state.remediation_actions 
+                                      if action['anomaly_after'] < action['anomaly_before']) / len(st.session_state.remediation_actions) * 100
+                    st.write(f"**Remediation effectiveness:** {effectiveness:.1f}%")
+            
+            # Add a link to the Impact Analysis tab for viewing the simulation effects
+            st.info("""
+            **Note:** The simulation has completed and all data has been collected.  
+            Visit the **Impact Analysis** tab to see detailed analytics about chaos and remediation impacts.
+            """)
+            
+            # Restart button to allow running a new simulation
+            if st.button("Run New Simulation"):
+                st.session_state.simulation_complete = False
+                st.session_state.approval_requested = False
+                # Clear metrics for a fresh run
+                for key in st.session_state.simulation_metrics:
+                    st.session_state.simulation_metrics[key] = []
+                st.rerun()
+        
+        # Active simulation loop
+        elif st.session_state.simulation_running:
+            try:
+                # Run the simulation steps
+                for step in range(st.session_state.current_step, num_actions):
+                    st.session_state.current_step = step
+                    progress_bar.progress((step + 1) / (num_actions * 2))  # Account for both chaos and remediation steps
+                    
+                    # Step 1: Select and apply chaos action
+                    chaos_action = chaos_env.select_action(st.session_state.simulation_state)
+                    action_id = chaos_action.item()
+                    action_description = chaos_env.get_action_description(action_id)
+                    
+                    status_container.info(f"Step {step+1}.A: Executing chaos action: {action_description}")
                 
-                # Step 1: Select and apply chaos action
-                chaos_action = chaos_env.select_action(st.session_state.simulation_state)
-                action_id = chaos_action.item()
-                action_description = chaos_env.get_action_description(action_id)
+                    # Apply chaos action
+                    next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
                 
-                status_container.info(f"Step {step+1}.A: Executing chaos action: {action_description}")
+                    # Generate metrics for visualization using more realistic patterns
+                    import random
+                    from datetime import datetime
                 
-                # Apply chaos action
-                next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
+                    # More controlled anomaly score generation
+                    # Base the anomaly score on the action and make it more consistent
+                    action_severity = {
+                        "CPU spike": 0.6,
+                        "Memory leak": 0.7,
+                        "Network partition": 0.8,
+                        "API rate limiting": 0.5,
+                        "Service termination": 0.9,
+                        "DNS failure": 0.75,
+                        "Database connection": 0.65,
+                        "Load balancer": 0.55
+                    }
                 
-                # Generate metrics for visualization using more realistic patterns
-                import random
-                from datetime import datetime
+                    # Extract the first part of the action description to match severity map
+                    action_type = next((key for key in action_severity if key in action_description), None)
+                    if action_type:
+                        # Add a slight variation but keep it centered on the appropriate severity
+                        base_severity = action_severity[action_type]
+                        anomaly_score = max(0.1, min(0.95, base_severity + random.uniform(-0.1, 0.1)))
+                    else:
+                        # Fallback with controlled randomness
+                        anomaly_score = random.uniform(0.3, 0.7)
                 
-                # More controlled anomaly score generation
-                # Base the anomaly score on the action and make it more consistent
-                action_severity = {
-                    "CPU spike": 0.6,
-                    "Memory leak": 0.7,
-                    "Network partition": 0.8,
-                    "API rate limiting": 0.5,
-                    "Service termination": 0.9,
-                    "DNS failure": 0.75,
-                    "Database connection": 0.65,
-                    "Load balancer": 0.55
-                }
+                    # Derive system health as inverse of anomaly score but with smoother curve
+                    system_health = max(0.1, 1.0 - (anomaly_score * 0.8))
+                    
+                    # Generate related infrastructure metrics with meaningful correlations
+                    
+                    # CPU is highly affected by CPU-related chaos actions, moderately by memory actions
+                    if "CPU" in action_description:
+                        cpu_util = random.uniform(85, 98)  # Critical level
+                    elif "memory" in action_description:
+                        cpu_util = random.uniform(70, 85)  # High but not critical
+                    elif "load" in action_description:
+                        cpu_util = random.uniform(75, 90)  # High due to load
+                    else:
+                        cpu_util = random.uniform(40, 60)  # Normal operation level
                 
-                # Extract the first part of the action description to match severity map
-                action_type = next((key for key in action_severity if key in action_description), None)
-                if action_type:
-                    # Add a slight variation but keep it centered on the appropriate severity
-                    base_severity = action_severity[action_type]
-                    anomaly_score = max(0.1, min(0.95, base_severity + random.uniform(-0.1, 0.1)))
-                else:
-                    # Fallback with controlled randomness
-                    anomaly_score = random.uniform(0.3, 0.7)
+                    # Memory usage correlations
+                    if "memory" in action_description:
+                        memory_usage = random.uniform(85, 98)  # Critical level
+                    elif "CPU" in action_description:
+                        memory_usage = random.uniform(70, 85)  # High but not critical
+                    elif "database" in action_description:
+                        memory_usage = random.uniform(65, 80)  # Elevated due to connection pooling
+                    else:
+                        memory_usage = random.uniform(50, 65)  # Normal operation
                 
-                # Derive system health as inverse of anomaly score but with smoother curve
-                system_health = max(0.1, 1.0 - (anomaly_score * 0.8))
+                    # Network latency is affected by network, DNS, and API chaos
+                    if "network" in action_description or "DNS" in action_description:
+                        network_latency = random.uniform(800, 2000)  # Major latency
+                    elif "API" in action_description:
+                        network_latency = random.uniform(400, 800)  # Moderate latency
+                    else:
+                        network_latency = random.uniform(50, 150)  # Normal latency
                 
-                # Generate related infrastructure metrics with meaningful correlations
+                    # API error rate correlations
+                    if "API" in action_description:
+                        api_error_rate = random.uniform(0.3, 0.5)  # Critical error rate
+                    elif "service" in action_description:
+                        api_error_rate = random.uniform(0.15, 0.3)  # High error rate
+                    elif "network" in action_description or "DNS" in action_description:
+                        api_error_rate = random.uniform(0.1, 0.25)  # Elevated due to connectivity
+                    else:
+                        api_error_rate = random.uniform(0.01, 0.08)  # Normal error rate
                 
-                # CPU is highly affected by CPU-related chaos actions, moderately by memory actions
-                if "CPU" in action_description:
-                    cpu_util = random.uniform(85, 98)  # Critical level
-                elif "memory" in action_description:
-                    cpu_util = random.uniform(70, 85)  # High but not critical
-                elif "load" in action_description:
-                    cpu_util = random.uniform(75, 90)  # High due to load
-                else:
-                    cpu_util = random.uniform(40, 60)  # Normal operation level
+                    # Service availability correlates with system health but has its own patterns
+                    if "service" in action_description:
+                        availability = random.uniform(0.5, 0.7)  # Direct impact
+                    elif "database" in action_description:
+                        availability = random.uniform(0.6, 0.8)  # Partial impact
+                    else:
+                        availability = max(0.7, system_health - 0.1)  # Derived from system health
                 
-                # Memory usage correlations
-                if "memory" in action_description:
-                    memory_usage = random.uniform(85, 98)  # Critical level
-                elif "CPU" in action_description:
-                    memory_usage = random.uniform(70, 85)  # High but not critical
-                elif "database" in action_description:
-                    memory_usage = random.uniform(65, 80)  # Elevated due to connection pooling
-                else:
-                    memory_usage = random.uniform(50, 65)  # Normal operation
+                    # Record metrics
+                    st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                    st.session_state.simulation_metrics['anomaly_score'].append(anomaly_score)
+                    st.session_state.simulation_metrics['system_health'].append(system_health)
+                    st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util)
+                    st.session_state.simulation_metrics['memory_usage'].append(memory_usage)
+                    st.session_state.simulation_metrics['network_latency'].append(network_latency)
+                    st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate) 
+                    st.session_state.simulation_metrics['service_availability'].append(availability)
+                    st.session_state.simulation_metrics['action_type'].append("Chaos")
+                    st.session_state.simulation_metrics['action_description'].append(action_description)
+                    st.session_state.simulation_metrics['phase'].append("Chaos")
                 
-                # Network latency is affected by network, DNS, and API chaos
-                if "network" in action_description or "DNS" in action_description:
-                    network_latency = random.uniform(800, 2000)  # Major latency
-                elif "API" in action_description:
-                    network_latency = random.uniform(400, 800)  # Moderate latency
-                else:
-                    network_latency = random.uniform(50, 150)  # Normal latency
+                    # Record action
+                    st.session_state.chaos_actions.append({
+                        'step': step,
+                        'action': action_id,
+                        'description': action_description,
+                        'reward': chaos_reward,
+                        'anomaly_score': anomaly_score,
+                        'timestamp': datetime.now()
+                    })
+                    
+                    # Display state metrics
+                    metrics_container.write({
+                        'Anomaly Score': f"{anomaly_score:.4f}",
+                        'System Health': f"{system_health:.4f}",
+                        'Chaos Reward': f"{chaos_reward:.4f}"
+                    })
+                    
+                    # Update visualization
+                    update_metrics_chart()
+                    
+                    # Delay for visualization
+                    time.sleep(delay)
+                    
+                    if chaos_done:
+                        status_container.warning("Simulation ended early due to critical failure.")
+                        break
                 
-                # API error rate correlations
-                if "API" in action_description:
-                    api_error_rate = random.uniform(0.3, 0.5)  # Critical error rate
-                elif "service" in action_description:
-                    api_error_rate = random.uniform(0.15, 0.3)  # High error rate
-                elif "network" in action_description or "DNS" in action_description:
-                    api_error_rate = random.uniform(0.1, 0.25)  # Elevated due to connectivity
-                else:
-                    api_error_rate = random.uniform(0.01, 0.08)  # Normal error rate
+                    # Step 2: Apply remediation action
+                    progress_bar.progress((step + 1.5) / (num_actions * 2))  # Halfway between steps
+                    
+                    # Select and apply remediation action
+                    remediation_action = remediation_env.select_action(next_state)
+                    remediation_id = remediation_action.item()
+                    remediation_description = remediation_env.get_action_description(remediation_id)
+                    
+                    status_container.warning(f"Step {step+1}.B: Applying remediation: {remediation_description}")
+                    
+                    # Apply remediation
+                    remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
+                    
+                    # Generate metrics after remediation using more realistic patterns
+                    
+                    # Map remediation actions to their typical effectiveness
+                    remediation_effectiveness = {
+                        "Scale": 0.7,           # Scaling is effective for load issues
+                        "Restart": 0.6,         # Restart helps but doesn't fix root causes
+                        "Failover": 0.8,        # Failover to healthy nodes is very effective
+                        "Throttle": 0.5,        # Throttling helps partially
+                        "Rollback": 0.75,       # Rollback to previous version often helps
+                        "Provision": 0.65,      # New resources help but take time
+                        "Reconfigure": 0.6,     # Configuration changes help for specific issues
+                        "Isolate": 0.7          # Isolation contains failures well
+                    }
                 
-                # Service availability correlates with system health but has its own patterns
-                if "service" in action_description:
-                    availability = random.uniform(0.5, 0.7)  # Direct impact
-                elif "database" in action_description:
-                    availability = random.uniform(0.6, 0.8)  # Partial impact
-                else:
-                    availability = max(0.7, system_health - 0.1)  # Derived from system health
+                    # Extract remediation type
+                    remediation_type = next((key for key in remediation_effectiveness if key in remediation_description), None)
+                    
+                    # Calculate improvement based on remediation effectiveness
+                    if remediation_type:
+                        effectiveness = remediation_effectiveness[remediation_type]
+                        # More severe problems show more dramatic improvements
+                        improvement_factor = effectiveness * (0.5 + anomaly_score/2)
+                        anomaly_after = max(0.05, anomaly_score * (1 - improvement_factor))
+                    else:
+                        # Default improvement if no specific match
+                        anomaly_after = max(0.05, anomaly_score - (anomaly_score * 0.4))
                 
-                # Record metrics
-                st.session_state.simulation_metrics['timestamps'].append(datetime.now())
-                st.session_state.simulation_metrics['anomaly_score'].append(anomaly_score)
-                st.session_state.simulation_metrics['system_health'].append(system_health)
-                st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util)
-                st.session_state.simulation_metrics['memory_usage'].append(memory_usage)
-                st.session_state.simulation_metrics['network_latency'].append(network_latency)
-                st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate) 
-                st.session_state.simulation_metrics['service_availability'].append(availability)
-                st.session_state.simulation_metrics['action_type'].append("Chaos")
-                st.session_state.simulation_metrics['action_description'].append(action_description)
-                st.session_state.simulation_metrics['phase'].append("Chaos")
-                
-                # Record action
-                st.session_state.chaos_actions.append({
-                    'step': step,
-                    'action': action_id,
-                    'description': action_description,
-                    'reward': chaos_reward,
-                    'anomaly_score': anomaly_score,
-                    'timestamp': datetime.now()
-                })
-                
-                # Display state metrics
-                metrics_container.write({
-                    'Anomaly Score': f"{anomaly_score:.4f}",
-                    'System Health': f"{system_health:.4f}",
-                    'Chaos Reward': f"{chaos_reward:.4f}"
-                })
-                
-                # Update visualization
-                update_metrics_chart()
-                
-                # Delay for visualization
-                time.sleep(delay)
-                
-                if chaos_done:
-                    status_container.warning("Simulation ended early due to critical failure.")
-                    break
-                
-                # Step 2: Apply remediation action
-                progress_bar.progress((step + 1.5) / (num_actions * 2))  # Halfway between steps
-                
-                # Select and apply remediation action
-                remediation_action = remediation_env.select_action(next_state)
-                remediation_id = remediation_action.item()
-                remediation_description = remediation_env.get_action_description(remediation_id)
-                
-                status_container.warning(f"Step {step+1}.B: Applying remediation: {remediation_description}")
-                
-                # Apply remediation
-                remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
-                
-                # Generate metrics after remediation using more realistic patterns
-                
-                # Map remediation actions to their typical effectiveness
-                remediation_effectiveness = {
-                    "Scale": 0.7,           # Scaling is effective for load issues
-                    "Restart": 0.6,         # Restart helps but doesn't fix root causes
-                    "Failover": 0.8,        # Failover to healthy nodes is very effective
-                    "Throttle": 0.5,        # Throttling helps partially
-                    "Rollback": 0.75,       # Rollback to previous version often helps
-                    "Provision": 0.65,      # New resources help but take time
-                    "Reconfigure": 0.6,     # Configuration changes help for specific issues
-                    "Isolate": 0.7          # Isolation contains failures well
-                }
-                
-                # Extract remediation type
-                remediation_type = next((key for key in remediation_effectiveness if key in remediation_description), None)
-                
-                # Calculate improvement based on remediation effectiveness
-                if remediation_type:
-                    effectiveness = remediation_effectiveness[remediation_type]
-                    # More severe problems show more dramatic improvements
-                    improvement_factor = effectiveness * (0.5 + anomaly_score/2)
-                    anomaly_after = max(0.05, anomaly_score * (1 - improvement_factor))
-                else:
-                    # Default improvement if no specific match
-                    anomaly_after = max(0.05, anomaly_score - (anomaly_score * 0.4))
-                
-                # Smoother system health calculation
-                system_health_after = min(0.95, max(0.2, 1.0 - anomaly_after))
-                
-                # Determine if this remediation targets the specific issue detected by chaos action
-                remediation_targets_issue = False
-                
-                # Map common issue types to their remediation
-                if "CPU" in action_description and ("Scale" in remediation_description or "Throttle" in remediation_description):
-                    remediation_targets_issue = True
-                elif "memory" in action_description and ("Restart" in remediation_description or "Provision" in remediation_description):
-                    remediation_targets_issue = True
-                elif "network" in action_description and ("Failover" in remediation_description or "Reconfigure" in remediation_description):
-                    remediation_targets_issue = True
-                elif "API" in action_description and ("Throttle" in remediation_description or "Rollback" in remediation_description):
-                    remediation_targets_issue = True
-                elif "service" in action_description and ("Restart" in remediation_description or "Failover" in remediation_description):
-                    remediation_targets_issue = True
+                                        # Smoother system health calculation
+                        system_health_after = min(0.95, max(0.2, 1.0 - anomaly_after))
+                        
+                        # Determine if this remediation targets the specific issue detected by chaos action
+                        remediation_targets_issue = False
+                        
+                        # Map common issue types to their remediation
+                        if "CPU" in action_description and ("Scale" in remediation_description or "Throttle" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "memory" in action_description and ("Restart" in remediation_description or "Provision" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "network" in action_description and ("Failover" in remediation_description or "Reconfigure" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "API" in action_description and ("Throttle" in remediation_description or "Rollback" in remediation_description):
+                            remediation_targets_issue = True
+                        elif "service" in action_description and ("Restart" in remediation_description or "Failover" in remediation_description):
+                            remediation_targets_issue = True
                 
                 # Infrastructure metrics improvements are better when targeted properly
                 
@@ -1041,11 +1092,18 @@ def display_chaos_simulation():
                 if remediation_done:
                     status_container.warning("Remediation completed the simulation early.")
                     break
+                
+                # Check if this was the last iteration
+                if step == num_actions - 1:
+                    # Simulation completed
+                    progress_bar.progress(1.0)
+                    status_container.success("Simulation completed!")
+            except Exception as e:
+                st.error(f"Simulation error: {str(e)}")
+                st.session_state.simulation_running = False
+                st.session_state.approval_requested = False
             
-            # Simulation completed
-            progress_bar.progress(1.0)
-            status_container.success("Simulation completed!")
-            
+            # After simulation finishes (both normal completion or exception)
             # Reset only the simulation running flag but keep metrics and other data
             st.session_state.simulation_running = False
             st.session_state.approval_requested = False
@@ -1087,10 +1145,7 @@ def display_chaos_simulation():
                 Visit the **Infrastructure Topology** tab to see the current state of the AWS infrastructure.
                 """)
         
-        except Exception as e:
-            st.error(f"Simulation error: {str(e)}")
-            st.session_state.simulation_running = False
-            st.session_state.approval_requested = False
+# This is where the simulation ends
 
 # Anomaly detection page
 def display_anomaly_detection():
