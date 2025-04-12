@@ -281,15 +281,16 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
     if topology is None:
         topology = InfrastructureTopology()
     
-    # Create a container for the visualization
+    # Create a container for the visualization with dark theme styling
     st.markdown("""
     <style>
     .topology-container {
-        border: 1px solid #ddd;
+        border: 1px solid #4e4e6e;
         border-radius: 5px;
         padding: 10px;
-        background-color: #f5f5f5;
+        background-color: rgba(38, 39, 48, 0.8);
         margin-bottom: 20px;
+        color: #e0e0e0;
     }
     </style>
     """, unsafe_allow_html=True)
