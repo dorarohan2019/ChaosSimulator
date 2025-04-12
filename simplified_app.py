@@ -2360,31 +2360,32 @@ def display_impact_analysis():
             # Group by description to get average impact of each action type
             if 'description' in chaos_df.columns:
                 # Extract the main action type from the description with more descriptive names
+                # Security-focused chaos action mapping with vulnerability-related descriptions
                 chaos_action_mapping = {
-                    "CPU": "CPU Stress/Failure",
-                    "Memory": "Memory Exhaust/Leak",
-                    "Network": "Network Disruption",
-                    "API": "API Failure/Throttling",
-                    "Service": "Service Outage",
-                    "Instance": "Instance Termination",
-                    "Termination": "Resource Termination",
-                    "DNS": "DNS Failure/Timeout",
-                    "Database": "Database Disruption",
-                    "Load balancer": "Load Balancer Malfunction",
-                    "EC2": "EC2 Instance Failure",
-                    "Lambda": "Lambda Function Disruption",
-                    "S3": "S3 Storage Failure",
-                    "Route": "Route Table Corruption",
-                    "Disk": "Disk Failure/Corruption",
-                    "Security": "Security Group Disruption",
-                    "RDS": "RDS Database Failure",
-                    "Throttling": "Rate Limit Throttling",
-                    "Latency": "High Network Latency",
-                    "Access": "Access Denial",
-                    "Rule": "Rule Misconfiguration",
-                    "Concurrency": "Concurrency Limitation",
-                    "Group": "Group Isolation",
-                    "Space": "Disk Space Exhaustion"
+                    "CPU": "CPU DoS Attack Simulation",
+                    "Memory": "Memory Leak Vulnerability",
+                    "Network": "Man-in-the-Middle Attack",
+                    "API": "API Authentication Bypass",
+                    "Service": "Privilege Escalation Attempt",
+                    "Instance": "EC2 Metadata Service Attack",
+                    "Termination": "Resource Access Termination",
+                    "DNS": "DNS Cache Poisoning",
+                    "Database": "SQL Injection Simulation",
+                    "Load balancer": "Load Balancer ACL Bypass",
+                    "EC2": "IAM Role Credential Exposure",
+                    "Lambda": "Function Permission Escalation",
+                    "S3": "S3 Bucket Policy Misconfiguration",
+                    "Route": "VPC Route Hijacking",
+                    "Disk": "EBS Volume Data Exfiltration",
+                    "Security": "Security Group Policy Bypass",
+                    "RDS": "Database Encryption Key Exposure",
+                    "Throttling": "API Rate Limit Bypass",
+                    "Latency": "Timing Attack Vulnerability",
+                    "Access": "Cross-Account Resource Access",
+                    "Rule": "NACL/WAF Rule Evasion",
+                    "Concurrency": "Race Condition Exploitation",
+                    "Group": "IAM Group Policy Vulnerability",
+                    "Space": "Disk Space Denial of Service"
                 }
                 
                 # Apply the detailed mapping
@@ -2430,30 +2431,30 @@ def display_impact_analysis():
         if remediation_df is not None and not remediation_df.empty:
             # Group by description to get average effectiveness of each remediation type
             if 'description' in remediation_df.columns and 'improvement' in remediation_df.columns:
-                # Extract the main remediation type with more descriptive names
+                # Extract the main remediation type with security-focused descriptive names
                 remediation_action_mapping = {
-                    "Scale": "Auto-Scaling Service Capacity",
-                    "Restart": "Service/Instance Restart",
-                    "Failover": "Failover to Redundant System",
-                    "Throttle": "Request Throttling Management",
-                    "Rollback": "Configuration Rollback",
-                    "Provision": "New Resource Provisioning",
-                    "Reconfigure": "System Reconfiguration",
-                    "Isolate": "Fault Isolation/Containment",
-                    "Restore": "Backup Restoration",
-                    "Fix": "Error Resolution/Patching",
-                    "Increase": "Resource Capacity Increase",
-                    "Decrease": "Resource Throttling",
-                    "Remove": "Breaking Component Removal",
-                    "Balance": "Load Rebalancing",
-                    "Heal": "Self-Healing Activation",
-                    "Auto": "Automated Recovery",
-                    "Reset": "Connection Reset/Renewal",
-                    "Clean": "Resource Cleanup",
-                    "Optimize": "Performance Optimization",
-                    "Update": "Component Update",
-                    "Patch": "Security/Stability Patch",
-                    "Recover": "Disaster Recovery Process"
+                    "Scale": "Autoscaler Activation for DoS Mitigation",
+                    "Restart": "Compromised Service Restart Protocol",
+                    "Failover": "Security Failover to Hardened System",
+                    "Throttle": "Attack Surface Throttling Defense",
+                    "Rollback": "Security Patch Rollback Protocol",
+                    "Provision": "Secure Resource Provisioning",
+                    "Reconfigure": "Security Hardening Reconfiguration",
+                    "Isolate": "Threat Isolation & Containment",
+                    "Restore": "Secure Backup Restoration",
+                    "Fix": "Zero-Day Vulnerability Patching",
+                    "Increase": "Security Infrastructure Scaling",
+                    "Decrease": "Malicious Traffic Throttling",
+                    "Remove": "Compromised Component Removal",
+                    "Balance": "Attack Distribution Mitigation",
+                    "Heal": "Automated Exploit Remediation",
+                    "Auto": "AI-Driven Security Response",
+                    "Reset": "TLS/Security Session Reset",
+                    "Clean": "Malware/Backdoor Removal",
+                    "Optimize": "Security Rule Optimization",
+                    "Update": "Critical Security Update Deployment",
+                    "Patch": "CVE Vulnerability Patching",
+                    "Recover": "Post-Breach Recovery Protocol"
                 }
                 
                 # Apply the detailed mapping
@@ -2586,14 +2587,14 @@ def display_logs_analysis():
         import random
         from datetime import datetime, timedelta
         
-        # Generate sample logs
+        # Generate sample security-focused chaos logs
         logs = []
         actions = [
-            "EC2 instance termination",
-            "RDS CPU stress",
-            "API throttling",
-            "Network latency injection",
-            "Lambda concurrency limitation"
+            "IAM Role Credential Exposure",
+            "S3 Bucket Policy Misconfiguration",
+            "API Authentication Bypass",
+            "Man-in-the-Middle Attack Simulation",
+            "SQL Injection Vulnerability"
         ]
         
         for i in range(10):
@@ -2618,14 +2619,14 @@ def display_logs_analysis():
     with tab2:
         st.subheader("Remediation Actions Log")
         
-        # Sample remediation logs
+        # Sample security-focused remediation logs
         remediation_logs = []
         remediation_actions = [
-            "Restore EC2 instance",
-            "Relieve RDS CPU stress",
-            "Remove API throttling",
-            "Remove network latency",
-            "Increase Lambda concurrency"
+            "Zero-Day Vulnerability Patching",
+            "IAM Policy Hardening",
+            "TLS/Security Session Reset",
+            "Malware/Backdoor Removal",
+            "CVE Vulnerability Patching"
         ]
         
         for i in range(5):
@@ -2660,14 +2661,14 @@ def display_logs_analysis():
             "total_remediation_actions": 19,
             "successful_remediations": 17,
             "most_common_chaos_actions": [
-                {"action": "API throttling", "count": 12},
-                {"action": "Network latency injection", "count": 10},
-                {"action": "EC2 instance termination", "count": 8}
+                {"action": "API Authentication Bypass", "count": 15},
+                {"action": "S3 Bucket Policy Misconfiguration", "count": 12},
+                {"action": "SQL Injection Vulnerability", "count": 9}
             ],
             "most_effective_remediations": [
-                {"action": "Remove API throttling", "avg_improvement": 0.18},
-                {"action": "Restore EC2 instance", "avg_improvement": 0.15},
-                {"action": "Remove network latency", "avg_improvement": 0.12}
+                {"action": "Zero-Day Vulnerability Patching", "avg_improvement": 0.28},
+                {"action": "Malware/Backdoor Removal", "avg_improvement": 0.22},
+                {"action": "IAM Policy Hardening", "avg_improvement": 0.19}
             ],
             "average_detection_time": "18.3 seconds",
             "average_remediation_time": "42.7 seconds"
