@@ -1897,6 +1897,7 @@ def main():
             "Chaos Simulation", 
             "Anomaly Detection", 
             "Model Training", 
+            "Infrastructure Topology",
             "Logs & Analysis"
         ])
         
@@ -1934,6 +1935,8 @@ def main():
         display_anomaly_detection()
     elif page == "Model Training":
         display_model_training()
+    elif page == "Infrastructure Topology":
+        display_infrastructure_topology()
     elif page == "Logs & Analysis":
         display_logs_analysis()
 
