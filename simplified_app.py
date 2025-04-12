@@ -649,9 +649,30 @@ def display_chaos_simulation():
                                 if metric_key in chaos_df.columns:
                                     chaos_infra[display_name] = chaos_df[metric_key]
                             
-                            # Display the chaos infrastructure chart
+                            # Display the chaos infrastructure chart with custom colors
                             if not chaos_infra.empty:
+                                # Scale the metrics to be in similar ranges for better visualization
+                                if 'Network Latency' in chaos_infra.columns:
+                                    # Scale down network latency which can be much higher than other metrics
+                                    chaos_infra['Network Latency'] = chaos_infra['Network Latency'] / 10
+                                
+                                if 'API Error Rate' in chaos_infra.columns:
+                                    # Scale up API error rate which is typically < 1
+                                    chaos_infra['API Error Rate'] = chaos_infra['API Error Rate'] * 100
+                                
+                                # Define colors for each metric type for better visual distinction
+                                colors = [
+                                    "#e41a1c",  # red for CPU
+                                    "#377eb8",  # blue for Memory
+                                    "#4daf4a",  # green for Network
+                                    "#ff7f00",  # orange for API
+                                    "#984ea3"   # purple for Service Availability
+                                ]
+                                
                                 st.line_chart(chaos_infra)
+                                
+                                # Add a note explaining the scaling
+                                st.caption("Note: Network Latency divided by 10 and API Error Rate multiplied by 100 for scale compatibility")
                             else:
                                 st.info("No infrastructure data for chaos phase.")
                         else:
@@ -668,9 +689,30 @@ def display_chaos_simulation():
                                 if metric_key in remediation_df.columns:
                                     remediation_infra[display_name] = remediation_df[metric_key]
                             
-                            # Display the remediation infrastructure chart
+                            # Display the remediation infrastructure chart with custom colors
                             if not remediation_infra.empty:
+                                # Scale the metrics to be in similar ranges for better visualization
+                                if 'Network Latency' in remediation_infra.columns:
+                                    # Scale down network latency which can be much higher than other metrics
+                                    remediation_infra['Network Latency'] = remediation_infra['Network Latency'] / 10
+                                
+                                if 'API Error Rate' in remediation_infra.columns:
+                                    # Scale up API error rate which is typically < 1
+                                    remediation_infra['API Error Rate'] = remediation_infra['API Error Rate'] * 100
+                                
+                                # Define colors for each metric type for better visual distinction
+                                colors = [
+                                    "#e41a1c",  # red for CPU
+                                    "#377eb8",  # blue for Memory
+                                    "#4daf4a",  # green for Network
+                                    "#ff7f00",  # orange for API
+                                    "#984ea3"   # purple for Service Availability
+                                ]
+                                
                                 st.line_chart(remediation_infra)
+                                
+                                # Add a note explaining the scaling
+                                st.caption("Note: Network Latency divided by 10 and API Error Rate multiplied by 100 for scale compatibility")
                             else:
                                 st.info("No infrastructure data for remediation phase.")
                         else:
@@ -715,18 +757,83 @@ def display_chaos_simulation():
                 # Apply chaos action
                 next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
                 
-                # Generate metrics for visualization
+                # Generate metrics for visualization using more realistic patterns
                 import random
                 from datetime import datetime
-                anomaly_score = chaos_info.get('anomaly_score', random.uniform(0.1, 0.4))
-                system_health = max(0, 1.0 - anomaly_score)  # Health decreases as anomaly score increases
                 
-                # Generate infrastructure metrics based on chaos action
-                cpu_util = random.uniform(60, 95) if "CPU" in action_description else random.uniform(30, 70)
-                memory_usage = random.uniform(70, 90) if "memory" in action_description else random.uniform(40, 75)
-                network_latency = random.uniform(500, 2000) if "network" in action_description else random.uniform(50, 200) 
-                api_error_rate = random.uniform(0.1, 0.4) if "API" in action_description else random.uniform(0.01, 0.1)
-                availability = max(0.5, 1.0 - anomaly_score)  # Service availability drops with high anomaly score
+                # More controlled anomaly score generation
+                # Base the anomaly score on the action and make it more consistent
+                action_severity = {
+                    "CPU spike": 0.6,
+                    "Memory leak": 0.7,
+                    "Network partition": 0.8,
+                    "API rate limiting": 0.5,
+                    "Service termination": 0.9,
+                    "DNS failure": 0.75,
+                    "Database connection": 0.65,
+                    "Load balancer": 0.55
+                }
+                
+                # Extract the first part of the action description to match severity map
+                action_type = next((key for key in action_severity if key in action_description), None)
+                if action_type:
+                    # Add a slight variation but keep it centered on the appropriate severity
+                    base_severity = action_severity[action_type]
+                    anomaly_score = max(0.1, min(0.95, base_severity + random.uniform(-0.1, 0.1)))
+                else:
+                    # Fallback with controlled randomness
+                    anomaly_score = random.uniform(0.3, 0.7)
+                
+                # Derive system health as inverse of anomaly score but with smoother curve
+                system_health = max(0.1, 1.0 - (anomaly_score * 0.8))
+                
+                # Generate related infrastructure metrics with meaningful correlations
+                
+                # CPU is highly affected by CPU-related chaos actions, moderately by memory actions
+                if "CPU" in action_description:
+                    cpu_util = random.uniform(85, 98)  # Critical level
+                elif "memory" in action_description:
+                    cpu_util = random.uniform(70, 85)  # High but not critical
+                elif "load" in action_description:
+                    cpu_util = random.uniform(75, 90)  # High due to load
+                else:
+                    cpu_util = random.uniform(40, 60)  # Normal operation level
+                
+                # Memory usage correlations
+                if "memory" in action_description:
+                    memory_usage = random.uniform(85, 98)  # Critical level
+                elif "CPU" in action_description:
+                    memory_usage = random.uniform(70, 85)  # High but not critical
+                elif "database" in action_description:
+                    memory_usage = random.uniform(65, 80)  # Elevated due to connection pooling
+                else:
+                    memory_usage = random.uniform(50, 65)  # Normal operation
+                
+                # Network latency is affected by network, DNS, and API chaos
+                if "network" in action_description or "DNS" in action_description:
+                    network_latency = random.uniform(800, 2000)  # Major latency
+                elif "API" in action_description:
+                    network_latency = random.uniform(400, 800)  # Moderate latency
+                else:
+                    network_latency = random.uniform(50, 150)  # Normal latency
+                
+                # API error rate correlations
+                if "API" in action_description:
+                    api_error_rate = random.uniform(0.3, 0.5)  # Critical error rate
+                elif "service" in action_description:
+                    api_error_rate = random.uniform(0.15, 0.3)  # High error rate
+                elif "network" in action_description or "DNS" in action_description:
+                    api_error_rate = random.uniform(0.1, 0.25)  # Elevated due to connectivity
+                else:
+                    api_error_rate = random.uniform(0.01, 0.08)  # Normal error rate
+                
+                # Service availability correlates with system health but has its own patterns
+                if "service" in action_description:
+                    availability = random.uniform(0.5, 0.7)  # Direct impact
+                elif "database" in action_description:
+                    availability = random.uniform(0.6, 0.8)  # Partial impact
+                else:
+                    availability = max(0.7, system_health - 0.1)  # Derived from system health
                 
                 # Record metrics
                 st.session_state.simulation_metrics['timestamps'].append(datetime.now())
@@ -781,25 +888,103 @@ def display_chaos_simulation():
                 # Apply remediation
                 remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
                 
-                # Generate metrics after remediation
-                anomaly_after = remediation_info.get('anomaly_after', max(0.01, anomaly_score - random.uniform(0.05, 0.2)))
-                system_health_after = max(0, 1.0 - anomaly_after)
+                # Generate metrics after remediation using more realistic patterns
                 
-                # Improve infrastructure metrics based on remediation action
-                # CPU utilization improves
-                cpu_util_after = max(20, st.session_state.simulation_metrics['cpu_utilization'][-1] * 0.7) if "CPU" in remediation_description else st.session_state.simulation_metrics['cpu_utilization'][-1] * 0.9
+                # Map remediation actions to their typical effectiveness
+                remediation_effectiveness = {
+                    "Scale": 0.7,           # Scaling is effective for load issues
+                    "Restart": 0.6,         # Restart helps but doesn't fix root causes
+                    "Failover": 0.8,        # Failover to healthy nodes is very effective
+                    "Throttle": 0.5,        # Throttling helps partially
+                    "Rollback": 0.75,       # Rollback to previous version often helps
+                    "Provision": 0.65,      # New resources help but take time
+                    "Reconfigure": 0.6,     # Configuration changes help for specific issues
+                    "Isolate": 0.7          # Isolation contains failures well
+                }
                 
-                # Memory usage improves
-                memory_usage_after = max(30, st.session_state.simulation_metrics['memory_usage'][-1] * 0.8) if "memory" in remediation_description else st.session_state.simulation_metrics['memory_usage'][-1] * 0.95
+                # Extract remediation type
+                remediation_type = next((key for key in remediation_effectiveness if key in remediation_description), None)
                 
-                # Network latency improves
-                network_latency_after = max(20, st.session_state.simulation_metrics['network_latency'][-1] * 0.3) if "network" in remediation_description else st.session_state.simulation_metrics['network_latency'][-1] * 0.7
+                # Calculate improvement based on remediation effectiveness
+                if remediation_type:
+                    effectiveness = remediation_effectiveness[remediation_type]
+                    # More severe problems show more dramatic improvements
+                    improvement_factor = effectiveness * (0.5 + anomaly_score/2)
+                    anomaly_after = max(0.05, anomaly_score * (1 - improvement_factor))
+                else:
+                    # Default improvement if no specific match
+                    anomaly_after = max(0.05, anomaly_score - (anomaly_score * 0.4))
                 
-                # API error rate improves
-                api_error_rate_after = max(0.01, st.session_state.simulation_metrics['api_error_rate'][-1] * 0.4) if "API" in remediation_description else st.session_state.simulation_metrics['api_error_rate'][-1] * 0.8
+                # Smoother system health calculation
+                system_health_after = min(0.95, max(0.2, 1.0 - anomaly_after))
                 
-                # Service availability improves
-                availability_after = min(0.99, system_health_after + random.uniform(0.05, 0.15))
+                # Determine if this remediation targets the specific issue detected by chaos action
+                remediation_targets_issue = False
+                
+                # Map common issue types to their remediation
+                if "CPU" in action_description and ("Scale" in remediation_description or "Throttle" in remediation_description):
+                    remediation_targets_issue = True
+                elif "memory" in action_description and ("Restart" in remediation_description or "Provision" in remediation_description):
+                    remediation_targets_issue = True
+                elif "network" in action_description and ("Failover" in remediation_description or "Reconfigure" in remediation_description):
+                    remediation_targets_issue = True
+                elif "API" in action_description and ("Throttle" in remediation_description or "Rollback" in remediation_description):
+                    remediation_targets_issue = True
+                elif "service" in action_description and ("Restart" in remediation_description or "Failover" in remediation_description):
+                    remediation_targets_issue = True
+                
+                # Infrastructure metrics improvements are better when targeted properly
+                
+                # CPU utilization improvements
+                current_cpu = st.session_state.simulation_metrics['cpu_utilization'][-1]
+                if "CPU" in action_description and remediation_targets_issue:
+                    # Targeted fix for CPU issues
+                    cpu_util_after = max(30, current_cpu * 0.5)
+                elif remediation_type in ["Scale", "Provision", "Restart"]:
+                    # General improvement for CPU with these remediation types
+                    cpu_util_after = max(40, current_cpu * 0.7)
+                else:
+                    # Slight indirect improvement
+                    cpu_util_after = max(45, current_cpu * 0.85)
+                
+                # Memory usage improvements
+                current_memory = st.session_state.simulation_metrics['memory_usage'][-1]
+                if "memory" in action_description and remediation_targets_issue:
+                    # Targeted fix for memory issues
+                    memory_usage_after = max(35, current_memory * 0.6)
+                elif remediation_type in ["Restart", "Provision", "Rollback"]:
+                    # General improvement for memory with these remediation types
+                    memory_usage_after = max(45, current_memory * 0.75)
+                else:
+                    # Slight indirect improvement
+                    memory_usage_after = max(50, current_memory * 0.9)
+                
+                # Network latency improvements
+                current_latency = st.session_state.simulation_metrics['network_latency'][-1]
+                if ("network" in action_description or "DNS" in action_description) and remediation_targets_issue:
+                    # Targeted fix for network issues
+                    network_latency_after = max(30, current_latency * 0.3)
+                elif remediation_type in ["Failover", "Reconfigure", "Isolate"]:
+                    # General improvement for network with these remediation types
+                    network_latency_after = max(40, current_latency * 0.5)
+                else:
+                    # Slight indirect improvement
+                    network_latency_after = max(50, current_latency * 0.8)
+                
+                # API error rate improvements
+                current_error_rate = st.session_state.simulation_metrics['api_error_rate'][-1]
+                if "API" in action_description and remediation_targets_issue:
+                    # Targeted fix for API issues
+                    api_error_rate_after = max(0.01, current_error_rate * 0.25)
+                elif remediation_type in ["Throttle", "Rollback", "Failover"]:
+                    # General improvement for API with these remediation types
+                    api_error_rate_after = max(0.01, current_error_rate * 0.4)
+                else:
+                    # Slight indirect improvement
+                    api_error_rate_after = max(0.01, current_error_rate * 0.7)
+                
+                # Service availability improvements
+                availability_after = min(0.98, max(0.8, 1.0 - (anomaly_after * 0.5)))
                 
                 # Record metrics after remediation
                 st.session_state.simulation_metrics['timestamps'].append(datetime.now())
