@@ -330,7 +330,7 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
         
         # Define the layers for visual representation
         layers = {
-            'vpc': {'y': 0, 'label': 'Network'},
+            'network': {'y': 0, 'label': 'Network'},
             'subnet': {'y': 1, 'label': 'Subnets'},
             'balancer': {'y': 2, 'label': 'Load Balancing'},
             'web': {'y': 3, 'label': 'Web Tier'},
@@ -454,6 +454,9 @@ def display_infrastructure_topology(topology=None, width=800, height=600, show_c
         # Calculate x-positions for nodes
         for node_id, node_info in topology.nodes.items():
             tier = node_info['tier']
+            # Provide fallback for any tier not in layers
+            if tier not in layers:
+                layers[tier] = {'y': 5, 'label': tier.capitalize()}
             y = layers[tier]['y'] * 85 + 30  # vertical position
             
             # Get node position index in this tier
