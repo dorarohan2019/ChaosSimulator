@@ -711,6 +711,10 @@ def display_chaos_simulation():
                                     display_name += " (×100)"
                                 elif metric_key == 'cpu_utilization' or metric_key == 'memory_usage':
                                     display_name += " (%)"
+                                elif metric_key == 'service_availability':
+                                    display_name += " (%)"
+                                elif metric_key == 'network_latency' and '(ms/10)' not in display_name:
+                                    display_name += " (ms)"
                                 
                                 # Add series with descriptive name
                                 metric_series = pd.Series(values, index=all_indices, name=display_name)
@@ -722,17 +726,20 @@ def display_chaos_simulation():
                         st.write("**Y-axis:** Infrastructure Metric Values (scaled appropriately per metric)")
                         st.line_chart(infra_metrics)
                         
-                        # Add explanatory notes and interpretation guidance with clear security focus
-                        st.caption("""
-                        **Security Impact on Infrastructure Metrics:**
-                        - **CPU Utilization (%)**: Shows increased processing load during security incidents (brute force attacks, DDoS)
-                        - **Memory Usage (%)**: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)
-                        - **Network Latency (ms/10)**: Network delays resulting from security incidents (scaled down for visibility)
-                        - **API Error Rate (×100)**: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)
-                        - **Service Availability (%)**: Service uptime impacted by security breaches
-                        
-                        This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.
-                        """)
+                        # Create a separate table showing the metric colors and meanings for clarity
+                        st.markdown("""
+                        <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                        <h4 style="margin-top: 0;">Security Impact on Infrastructure Metrics - Legend</h4>
+                        <ul style="margin-bottom: 0; padding-left: 20px;">
+                        <li><b>CPU Utilization (%)</b>: Shows increased processing load during security incidents (brute force attacks, DDoS)</li>
+                        <li><b>Memory Usage (%)</b>: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)</li>
+                        <li><b>Network Latency (ms)</b>: Network delays resulting from security incidents</li>
+                        <li><b>Service Availability (%)</b>: Service uptime impacted by security breaches</li>
+                        <li><b>API Error Rate (×100)</b>: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)</li>
+                        </ul>
+                        <p style="margin-bottom: 0; font-style: italic;">This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.</p>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
                         # Add security-focused color point indicators for major metric spikes
                         col1, col2 = st.columns(2)
