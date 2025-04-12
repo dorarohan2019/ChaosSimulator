@@ -1056,8 +1056,8 @@ def display_model_training():
             # Calculate iterations based on parameters (with reasonable limits for UI responsiveness)
             # We'll scale down for demo purposes but preserve the ratio
             if model_type == "LSTM Autoencoder (Anomaly Detection)":
-                # Use actual epochs but cap at 100 for demo
-                total_iters = min(epochs, 100)
+                # Use the full number of epochs specified by the user without capping
+                total_iters = epochs
                 # Scale factors to make the simulation reflect parameter changes
                 learning_factor = learning_rate_lstm * 20  # Higher rate = faster convergence
                 batch_factor = batch_size / 32  # Larger batch = fewer steps but less noise
@@ -1084,9 +1084,9 @@ def display_model_training():
                 log_output.info(f"Training will use {batches_per_epoch} batches per epoch")
                 
             else:  # RL Agents
-                # For RL: Scale down timesteps but preserve the original scale
+                # For RL: Use the full number of timesteps specified by the user
                 timesteps_per_iter = 500  # Each iteration represents this many timesteps
-                total_iters = min(total_timesteps // timesteps_per_iter, 100)  # Cap at 100 for UI
+                total_iters = total_timesteps // timesteps_per_iter  # Use all timesteps without capping
                 
                 # Different learning parameters for RL
                 learning_factor = learning_rate_rl * 2500  # Higher learning rate = faster convergence
