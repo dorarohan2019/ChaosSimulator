@@ -11,7 +11,9 @@ from collections import deque
 import requests  # For Slack API fallback if slack_sdk is not available
 
 # Define Slack constants
-SLACK_CHANNEL = "#chaos-engineering"  # Updated channel with # prefix
+SLACK_CHANNEL = "C08LJRT9VM3"  # Channel ID
+SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name without # prefix
+SLACK_DEFAULT_TOKEN = "xoxb-8693650061862-8686339764119-xjW7OsW6q4r9jB2DL5ZsZp8b"  # Default token
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
 # Try to import Slack SDK, but provide fallback if not available
@@ -428,9 +430,10 @@ def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
         
     try:
         if SLACK_SDK_AVAILABLE:
-            # Use slack_sdk if available - using the format from user's code
+            # Use slack_sdk if available with the channel ID
             slack_client = WebClient(token=slack_token)
             response = slack_client.chat_postMessage(channel=channel, text=message)
+            logger.info(f"Slack message sent successfully to {channel}")
             return response["ts"]
         else:
             # Fallback to direct API call
@@ -445,6 +448,7 @@ def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
             response = requests.post('https://slack.com/api/chat.postMessage', 
                                      headers=headers, json=data)
             if response.status_code == 200 and response.json().get('ok'):
+                logger.info(f"Slack message sent successfully to {channel}")
                 return response.json().get('ts')
             else:
                 logger.error(f"Error sending Slack message: {response.text}")
@@ -694,14 +698,19 @@ def display_chaos_simulation():
         delay = speed_map[simulation_speed]
         
         # Add Slack token input
-        slack_token = st.text_input("Slack API Token (optional)", type="password", 
+        slack_token = st.text_input("Slack API Token", value=SLACK_DEFAULT_TOKEN, type="password", 
                                   help="API token for Slack notifications")
         if "slack_token" not in st.session_state:
-            st.session_state.slack_token = ""
+            st.session_state.slack_token = SLACK_DEFAULT_TOKEN
         
         # Save token to session state when entered
         if slack_token:
             st.session_state.slack_token = slack_token
+            
+        # Display Slack configuration info
+        if st.session_state.slack_token:
+            st.success(f"Using Slack channel ID: {SLACK_CHANNEL}")
+            st.info("Slack notifications are enabled")
         
         # Approval workflow
         if not st.session_state.approval_requested:
