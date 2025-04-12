@@ -180,13 +180,101 @@ class MockEnvironment:
         return next_state, reward, done, info
 
 # Mock loading functions
+def save_model(model_type, model_data):
+    """
+    Save a trained model to file
+    
+    Args:
+        model_type (str): Type of model ('anomaly_model', 'chaos_agent', or 'remediation_agent')
+        model_data (object): The model data to save
+    """
+    # Create models directory if it doesn't exist
+    os.makedirs("models", exist_ok=True)
+    
+    # Generate filename with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"models/{model_type}_{timestamp}.pkl"
+    
+    try:
+        # Save the model data
+        import pickle
+        with open(filename, 'wb') as f:
+            pickle.dump(model_data, f)
+        
+        # Update latest model link
+        latest_link = f"models/{model_type}_latest.pkl"
+        if os.path.exists(latest_link):
+            os.remove(latest_link)
+        os.symlink(filename, latest_link)
+        
+        # Update session state
+        st.session_state.model_statuses[model_type] = 'Trained'
+        
+        logger.info(f"Saved {model_type} to {filename}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save {model_type}: {str(e)}")
+        return False
+
 def load_predictive_model():
-    return None
+    """Load the latest trained anomaly detection model"""
+    try:
+        latest_model_path = "models/anomaly_model_latest.pkl"
+        if os.path.exists(latest_model_path):
+            import pickle
+            with open(latest_model_path, 'rb') as f:
+                model = pickle.load(f)
+            st.session_state.model_statuses['anomaly_model'] = 'Loaded'
+            logger.info("Loaded anomaly detection model")
+            return model
+        else:
+            logger.warning("No anomaly detection model found")
+            return None
+    except Exception as e:
+        logger.error(f"Failed to load anomaly detection model: {str(e)}")
+        return None
 
 def load_agents():
-    return MockEnvironment(), MockEnvironment()
+    """Load the trained chaos and remediation agents"""
+    chaos_env = MockEnvironment()
+    remediation_env = MockEnvironment()
+    
+    try:
+        # Try to load chaos agent
+        chaos_path = "models/chaos_agent_latest.pkl"
+        if os.path.exists(chaos_path):
+            import pickle
+            with open(chaos_path, 'rb') as f:
+                chaos_model = pickle.load(f)
+            chaos_env.model = chaos_model
+            st.session_state.model_statuses['chaos_agent'] = 'Trained'
+            logger.info("Loaded chaos agent model")
+    except Exception as e:
+        logger.error(f"Failed to load chaos agent: {str(e)}")
+    
+    try:
+        # Try to load remediation agent
+        remediation_path = "models/remediation_agent_latest.pkl"
+        if os.path.exists(remediation_path):
+            import pickle
+            with open(remediation_path, 'rb') as f:
+                remediation_model = pickle.load(f)
+            remediation_env.model = remediation_model
+            st.session_state.model_statuses['remediation_agent'] = 'Trained'
+            logger.info("Loaded remediation agent model")
+    except Exception as e:
+        logger.error(f"Failed to load remediation agent: {str(e)}")
+    
+    return chaos_env, remediation_env
 
 def check_required_files():
+    """Check if required files for simulation exist"""
+    required_dirs = ['models']
+    
+    # Create required directories if they don't exist
+    for directory in required_dirs:
+        os.makedirs(directory, exist_ok=True)
+    
     return True
 
 def provision_localstack_resources():
@@ -1771,6 +1859,78 @@ def display_model_training():
                 })
 
 # Logs and analysis page
+def display_infrastructure_topology():
+    st.header("AWS Infrastructure Topology")
+    
+    # Create/retrieve topology from session state
+    if 'infra_topology' not in st.session_state:
+        st.session_state.infra_topology = InfrastructureTopology()
+    
+    # Clean, simplified infrastructure view
+    st.write("This view shows the current state of your AWS infrastructure components and their connections.")
+    
+    # Add some manual test actions for demonstration
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("Reset Infrastructure"):
+            st.session_state.infra_topology.reset()
+            st.rerun()
+    
+    with col2:
+        if st.button("Simulate Chaos Event"):
+            actions = [
+                "EC2 instance termination",
+                "RDS CPU stress",
+                "API throttling",
+                "Network latency injection",
+                "Lambda concurrency limitation",
+                "S3 access throttling"
+            ]
+            # Select a random chaos action
+            action = random.choice(actions)
+            st.session_state.infra_topology.apply_chaos_action(action)
+            st.success(f"Applied chaos action: {action}")
+            st.rerun()
+    
+    with col3:
+        if st.button("Apply Remediation"):
+            if st.session_state.infra_topology.state_history:
+                # Get the last chaos action
+                last_action = None
+                for event in reversed(st.session_state.infra_topology.state_history):
+                    if event['action'] == 'chaos':
+                        last_action = event['description']
+                        break
+                
+                if last_action:
+                    remedy = f"Fix {last_action.lower()}"
+                    st.session_state.infra_topology.apply_remediation_action(remedy)
+                    st.success(f"Applied remediation: {remedy}")
+                else:
+                    st.warning("No chaos event to remediate")
+            else:
+                st.warning("No chaos event to remediate")
+            st.rerun()
+    
+    # Display the infrastructure topology - use the imported function
+    from infrastructure_topology import display_infrastructure_topology as display_topology
+    display_topology(st.session_state.infra_topology)
+    
+    # Information about the visualization
+    with st.expander("About this visualization"):
+        st.write("""
+        This simplified AWS infrastructure topology shows the relationship between different AWS services
+        and their current operational status. The colors indicate:
+        
+        - 🟢 **Healthy**: Service is operating normally
+        - 🟠 **Degraded**: Service is experiencing issues but still functional
+        - 🔴 **Failed**: Service is not operational
+        
+        When a chaos event is applied, it affects specific services and may propagate to dependent services.
+        The remediation actions aim to restore the affected services to their healthy state.
+        """)
+
 def display_logs_analysis():
     from datetime import datetime, timedelta
     
