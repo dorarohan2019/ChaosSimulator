@@ -360,10 +360,20 @@ def display_chaos_simulation():
                 'timestamps': [],
                 'anomaly_score': [],
                 'system_health': [],
+                'cpu_utilization': [],
+                'memory_usage': [],
+                'network_latency': [],
+                'api_error_rate': [],
+                'service_availability': [],
                 'action_type': [],
                 'action_description': []
             }
-        else:
+            # Initialize empty lists for all metrics to avoid issues with "any(val != 0)"
+            for key in st.session_state.simulation_metrics:
+                st.session_state.simulation_metrics[key] = []
+        elif st.session_state.simulation_running and 'clear_metrics' not in st.session_state:
+            # Only clear metrics when first starting a simulation, not when returning to page
+            st.session_state.clear_metrics = True
             # Clear previous metrics
             for key in st.session_state.simulation_metrics:
                 st.session_state.simulation_metrics[key] = []
@@ -378,13 +388,29 @@ def display_chaos_simulation():
             if len(st.session_state.simulation_metrics['timestamps']) > 0:
                 df = pd.DataFrame(st.session_state.simulation_metrics)
                 
-                # Create two separate dataframes for visualization
-                # One for metrics (line chart)
-                metrics_df = df[['timestamps', 'anomaly_score', 'system_health']]
-                metrics_df = metrics_df.set_index('timestamps')
+                # Create separate dataframes for visualization
+                # First chart: Primary metrics (anomaly score and system health)
+                primary_metrics_df = df[['timestamps', 'anomaly_score', 'system_health']]
+                primary_metrics_df = primary_metrics_df.set_index('timestamps')
                 
-                # Show the metrics chart
-                metrics_chart.line_chart(metrics_df)
+                # Show the primary metrics chart
+                st.subheader("System Status Metrics")
+                st.line_chart(primary_metrics_df)
+                
+                # Second chart: Infrastructure metrics
+                # Filter out columns that don't have data yet
+                infra_columns = ['timestamps']
+                for col in ['cpu_utilization', 'memory_usage', 'network_latency', 'api_error_rate', 'service_availability']:
+                    if any(val != 0 for val in df[col]) or len(df[col]) == 0:
+                        infra_columns.append(col)
+                
+                if len(infra_columns) > 1:  # If we have any data beyond timestamps
+                    infra_metrics_df = df[infra_columns]
+                    infra_metrics_df = infra_metrics_df.set_index('timestamps')
+                    
+                    # Show the infrastructure metrics chart
+                    st.subheader("Infrastructure Metrics")
+                    st.line_chart(infra_metrics_df)
                 
                 # Show action log below chart
                 actions_df = df[['timestamps', 'action_type', 'action_description']]
@@ -426,10 +452,22 @@ def display_chaos_simulation():
                 anomaly_score = chaos_info.get('anomaly_score', random.uniform(0.1, 0.4))
                 system_health = max(0, 1.0 - anomaly_score)  # Health decreases as anomaly score increases
                 
+                # Generate infrastructure metrics based on chaos action
+                cpu_util = random.uniform(60, 95) if "CPU" in action_description else random.uniform(30, 70)
+                memory_usage = random.uniform(70, 90) if "memory" in action_description else random.uniform(40, 75)
+                network_latency = random.uniform(500, 2000) if "network" in action_description else random.uniform(50, 200) 
+                api_error_rate = random.uniform(0.1, 0.4) if "API" in action_description else random.uniform(0.01, 0.1)
+                availability = max(0.5, 1.0 - anomaly_score)  # Service availability drops with high anomaly score
+                
                 # Record metrics
                 st.session_state.simulation_metrics['timestamps'].append(datetime.now())
                 st.session_state.simulation_metrics['anomaly_score'].append(anomaly_score)
                 st.session_state.simulation_metrics['system_health'].append(system_health)
+                st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util)
+                st.session_state.simulation_metrics['memory_usage'].append(memory_usage)
+                st.session_state.simulation_metrics['network_latency'].append(network_latency)
+                st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate) 
+                st.session_state.simulation_metrics['service_availability'].append(availability)
                 st.session_state.simulation_metrics['action_type'].append("Chaos")
                 st.session_state.simulation_metrics['action_description'].append(action_description)
                 
@@ -477,10 +515,31 @@ def display_chaos_simulation():
                 anomaly_after = remediation_info.get('anomaly_after', max(0.01, anomaly_score - random.uniform(0.05, 0.2)))
                 system_health_after = max(0, 1.0 - anomaly_after)
                 
+                # Improve infrastructure metrics based on remediation action
+                # CPU utilization improves
+                cpu_util_after = max(20, st.session_state.simulation_metrics['cpu_utilization'][-1] * 0.7) if "CPU" in remediation_description else st.session_state.simulation_metrics['cpu_utilization'][-1] * 0.9
+                
+                # Memory usage improves
+                memory_usage_after = max(30, st.session_state.simulation_metrics['memory_usage'][-1] * 0.8) if "memory" in remediation_description else st.session_state.simulation_metrics['memory_usage'][-1] * 0.95
+                
+                # Network latency improves
+                network_latency_after = max(20, st.session_state.simulation_metrics['network_latency'][-1] * 0.3) if "network" in remediation_description else st.session_state.simulation_metrics['network_latency'][-1] * 0.7
+                
+                # API error rate improves
+                api_error_rate_after = max(0.01, st.session_state.simulation_metrics['api_error_rate'][-1] * 0.4) if "API" in remediation_description else st.session_state.simulation_metrics['api_error_rate'][-1] * 0.8
+                
+                # Service availability improves
+                availability_after = min(0.99, system_health_after + random.uniform(0.05, 0.15))
+                
                 # Record metrics after remediation
                 st.session_state.simulation_metrics['timestamps'].append(datetime.now())
                 st.session_state.simulation_metrics['anomaly_score'].append(anomaly_after)
                 st.session_state.simulation_metrics['system_health'].append(system_health_after)
+                st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util_after)
+                st.session_state.simulation_metrics['memory_usage'].append(memory_usage_after)
+                st.session_state.simulation_metrics['network_latency'].append(network_latency_after)
+                st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate_after)
+                st.session_state.simulation_metrics['service_availability'].append(availability_after)
                 st.session_state.simulation_metrics['action_type'].append("Remediation")
                 st.session_state.simulation_metrics['action_description'].append(remediation_description)
                 
@@ -521,15 +580,39 @@ def display_chaos_simulation():
             progress_bar.progress(1.0)
             status_container.success("Simulation completed!")
             
-            # Reset simulation state
+            # Reset only the simulation running flag but keep metrics and other data
             st.session_state.simulation_running = False
             st.session_state.approval_requested = False
+            st.session_state.simulation_complete = True
             if 'simulation_state' in st.session_state:
                 del st.session_state.simulation_state
             if 'current_step' in st.session_state:
                 del st.session_state.current_step
             
-            st.rerun()
+            # Do not rerun to keep the visualization displayed
+            # Display summary of simulation results
+            st.subheader("Simulation Results Summary")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write("### Chaos Actions")
+                st.write(f"**Total chaos actions:** {len(st.session_state.chaos_actions)}")
+                st.write("**Average anomaly score:** {:.4f}".format(
+                    sum(action['anomaly_score'] for action in st.session_state.chaos_actions) / 
+                    max(1, len(st.session_state.chaos_actions))
+                ))
+            
+            with col2:
+                st.write("### Remediation Actions")
+                st.write(f"**Total remediation actions:** {len(st.session_state.remediation_actions)}")
+                if st.session_state.remediation_actions:
+                    avg_improvement = sum(action['improvement'] for action in st.session_state.remediation_actions) / len(st.session_state.remediation_actions)
+                    st.write(f"**Average improvement:** {avg_improvement:.4f}")
+                    
+                    # Calculate effectiveness percentage
+                    effectiveness = sum(1 for action in st.session_state.remediation_actions 
+                                      if action['anomaly_after'] < action['anomaly_before']) / len(st.session_state.remediation_actions) * 100
+                    st.write(f"**Remediation effectiveness:** {effectiveness:.1f}%")
         
         except Exception as e:
             st.error(f"Simulation error: {str(e)}")
