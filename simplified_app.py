@@ -441,6 +441,8 @@ def display_dashboard():
     # Convert deques to lists for plotting
     history_dict = {k: list(v) for k, v in st.session_state.metrics_history.items()}
     if any(len(v) > 0 for v in history_dict.values()):
+        st.write("**X-axis:** Time (most recent data points on right)")
+        st.write("**Y-axis:** Metric Value")
         st.line_chart(history_dict)
     else:
         st.info("No metrics data available yet. Click 'Refresh Metrics' to collect data.")
@@ -617,6 +619,8 @@ def display_chaos_simulation():
                     # Display the unified system metrics chart
                     if not system_metrics.empty:
                         # Display chart with clear color coding
+                        st.write("**X-axis:** Time/Step Index (increases during simulation)")
+                        st.write("**Y-axis:** Metric Value (0-1 scale)")
                         st.line_chart(system_metrics)
                         
                         # Add an explanation of the metrics
@@ -688,6 +692,8 @@ def display_chaos_simulation():
                     
                     # Display the unified infrastructure metrics chart
                     if not infra_metrics.empty:
+                        st.write("**X-axis:** Time/Step Index (increases during simulation)")
+                        st.write("**Y-axis:** Infrastructure Metric Values (scaled appropriately per metric)")
                         st.line_chart(infra_metrics)
                         
                         # Add explanatory notes and interpretation guidance
@@ -1207,6 +1213,8 @@ def display_anomaly_detection():
     anomaly_points = df[df["anomaly_score"] > threshold]
     
     # Display the threshold line
+    st.write("**X-axis:** Time Points (most recent data on right)")
+    st.write("**Y-axis:** Anomaly Score (higher values indicate potential issues)")
     st.line_chart({"anomaly_score": anomaly_scores, "threshold": [threshold] * len(dates)})
     
     # Create visualization to show points above and below threshold
@@ -1261,6 +1269,8 @@ def display_anomaly_detection():
                  for color in ['blue', 'red']}
     
     # Display chart
+    st.write("**X-axis:** Anomaly Score Range")
+    st.write("**Y-axis:** Count of Occurrences (frequency)")
     st.bar_chart(chart_data)
     
     # Add clear legend
@@ -2365,6 +2375,8 @@ def display_impact_analysis():
                 chaos_impact.columns = ['Chaos Action', 'Impact Score']
                 
                 # Create a bar chart of chaos action impacts
+                st.write("**X-axis:** Chaos Action Type")
+                st.write("**Y-axis:** Impact Score (higher = more severe impact)")
                 st.bar_chart(chaos_impact.set_index('Chaos Action'))
                 
                 # Add a table with more detailed information
@@ -2410,6 +2422,8 @@ def display_impact_analysis():
                 remediation_impact.columns = ['Remediation Action', 'Effectiveness Score']
                 
                 # Create a bar chart of remediation effectiveness
+                st.write("**X-axis:** Remediation Action Type")
+                st.write("**Y-axis:** Effectiveness Score (higher = more effective remediation)")
                 st.bar_chart(remediation_impact.set_index('Remediation Action'))
                 
                 # Add a table with more detailed information
