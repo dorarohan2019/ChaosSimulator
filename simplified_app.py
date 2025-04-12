@@ -2176,6 +2176,44 @@ def display_logs_analysis():
 
 # Main app layout
 def main():
+    # Ensure required directories exist
+    check_required_files()
+    
+    # Initialize state for tracking models and data
+    if 'current_state' not in st.session_state:
+        st.session_state.current_state = None
+    
+    # Experiment status tracking
+    if 'approval_requested' not in st.session_state:
+        st.session_state.approval_requested = False
+    if 'simulation_running' not in st.session_state:
+        st.session_state.simulation_running = False
+    if 'simulation_complete' not in st.session_state:
+        st.session_state.simulation_complete = False
+        
+    # Metrics history tracking using deque for fixed window
+    if 'metrics_history' not in st.session_state:
+        st.session_state.metrics_history = {
+            'cpu': deque(maxlen=100),
+            'memory': deque(maxlen=100),
+            'network': deque(maxlen=100),
+            'disk': deque(maxlen=100),
+            'anomaly_score': deque(maxlen=100)
+        }
+    
+    # Try to load models at startup - this loads any persisted models
+    try:
+        # Load prediction model if it exists
+        load_predictive_model()
+        
+        # Load agent models if they exist
+        load_agents()
+        
+        # Log model loading status
+        logger.info(f"Model statuses: {st.session_state.model_statuses}")
+    except Exception as e:
+        logger.error(f"Error loading models at startup: {str(e)}")
+        
     # Display header
     dashboard_header()
     
@@ -2208,6 +2246,16 @@ def main():
         else:
             st.error("❌ LocalStack is not running")
             st.info("Please start LocalStack with: docker run -p 4566:4566 localstack/localstack")
+            
+        # Display model statuses in sidebar
+        st.divider()
+        st.subheader("Model Status")
+        for model_name, status in st.session_state.model_statuses.items():
+            display_name = model_name.replace('_', ' ').title()
+            if status == 'Not Trained' or status == 'Not Loaded':
+                st.info(f"**{display_name}**: {status}")
+            else:
+                st.success(f"**{display_name}**: {status}")
         
         st.divider()
         
