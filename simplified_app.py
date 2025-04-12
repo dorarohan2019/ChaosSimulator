@@ -140,6 +140,7 @@ class MockEnvironment:
     def __init__(self):
         self.model = None
         self.predictive_model = None
+        self.is_chaos = True  # By default assume it's for chaos actions
         
     def select_action(self, state):
         """Mock action selection"""
@@ -150,24 +151,43 @@ class MockEnvironment:
         return MockAction()
         
     def get_action_description(self, action_id):
-        """Return a description for a given action ID focused on security vulnerabilities"""
-        # Selected security-focused actions from the original 36 actions
-        security_actions = {
-            0: "Revoke IAM permissions",
-            1: "Introduce security group vulnerability",
-            2: "Simulate brute force attack",
-            3: "Create excessive IAM roles",
-            4: "Revoke key permissions",
-            5: "Add restrictive policy",
-            6: "Disable API endpoint",
-            7: "Disable CloudWatch alarms",
-            8: "Disable CloudTrail logging",
-            9: "Simulate security breach",
-            10: "Simulate DDoS attack",
-            11: "Simulate data exfiltration",
-            12: "Cause database corruption"
-        }
-        return security_actions.get(action_id % len(security_actions), f"Security vulnerability {action_id}")
+        """Return a description for a given action ID focused on security vulnerabilities or remediation"""
+        if self.is_chaos:
+            # Chaos actions - focused on creating security vulnerabilities
+            security_actions = {
+                0: "Revoke IAM permissions",
+                1: "Introduce security group vulnerability",
+                2: "Simulate brute force attack",
+                3: "Create excessive IAM roles",
+                4: "Disable CloudWatch alarms",
+                5: "Disable CloudTrail logging",
+                6: "Simulate security breach",
+                7: "Simulate DDoS attack",
+                8: "Simulate data exfiltration",
+                9: "Cause database corruption",
+                10: "Disable API endpoint",
+                11: "Inject malicious code",
+                12: "Expose sensitive data"
+            }
+            return security_actions.get(action_id % len(security_actions), f"Security vulnerability {action_id}")
+        else:
+            # Remediation actions - focused on fixing security vulnerabilities
+            remediation_actions = {
+                0: "Update IAM policies",
+                1: "Fix security group rules",
+                2: "Implement brute force protection",
+                3: "Cleanup excessive IAM roles",
+                4: "Enable CloudWatch monitoring",
+                5: "Enable CloudTrail logging",
+                6: "Patch security breach",
+                7: "Deploy DDoS protection",
+                8: "Prevent data exfiltration",
+                9: "Restore database integrity",
+                10: "Secure API endpoints",
+                11: "Remove malicious code",
+                12: "Encrypt sensitive data"
+            }
+            return remediation_actions.get(action_id % len(remediation_actions), f"Security remediation {action_id}")
         
     def reset(self):
         """Reset the environment state"""
@@ -295,7 +315,10 @@ def load_predictive_model():
 def load_agents():
     """Load the trained chaos and remediation agents"""
     chaos_env = MockEnvironment()
+    chaos_env.is_chaos = True  # This is for chaos actions
+    
     remediation_env = MockEnvironment()
+    remediation_env.is_chaos = False  # This is for remediation actions
     
     # Try to load chaos agent
     try:
