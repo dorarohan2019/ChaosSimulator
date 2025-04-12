@@ -175,7 +175,7 @@ class MockEnvironment:
         import random
         next_state = [[random.random() for _ in range(25)] for _ in range(5)]
         reward = random.uniform(-1.0, 1.0)
-        done = random.random() > 0.95  # 5% chance of ending
+        done = False  # Never end early for better demo experience
         info = {'anomaly_score': random.uniform(0.0, 0.5), 'anomaly_after': random.uniform(0.0, 0.3)}
         return next_state, reward, done, info
 
