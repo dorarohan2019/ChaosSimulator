@@ -910,13 +910,18 @@ def display_chaos_simulation():
                         st.line_chart(system_metrics)
                         
                         # Add an explanation of the metrics
-                        st.caption("""
-                        **System Status Metrics:**
-                        - **Anomaly Score** (red): Overall measure of system anomalies (higher = more severe issues)
-                        - **System Health** (blue): Overall system health status (higher = healthier system)
-                        
+                        st.markdown("""
+                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #4e4e6e;">
+                        <h5 style="margin-top: 0; color: #ff9d5c;">System Status Metrics:</h5>
+                        <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
+                        <li><b style="color: #ff6961;">Anomaly Score</b>: Overall measure of system anomalies (higher = more severe issues)</li>
+                        <li><b style="color: #429bf5;">System Health</b>: Overall system health status (higher = healthier system)</li>
+                        </ul>
+                        <p style="margin-top: 8px; margin-bottom: 0; font-style: italic; color: #c0c0c0;">
                         The graph shows the continuous state of the system throughout the chaos injection and remediation phases.
-                        """)
+                        </p>
+                        </div>
+                        """, unsafe_allow_html=True)
                         
                         # Add phase transition indicators
                         if 'phase' in df.columns:
@@ -988,16 +993,16 @@ def display_chaos_simulation():
                         
                         # Create a separate table showing the metric colors and meanings for clarity
                         st.markdown("""
-                        <div style="background-color: #f0f2f6; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
-                        <h4 style="margin-top: 0;">Security Impact on Infrastructure Metrics - Legend</h4>
-                        <ul style="margin-bottom: 0; padding-left: 20px;">
-                        <li><b>CPU Utilization (%)</b>: Shows increased processing load during security incidents (brute force attacks, DDoS)</li>
-                        <li><b>Memory Usage (%)</b>: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)</li>
-                        <li><b>Network Latency (ms)</b>: Network delays resulting from security incidents</li>
-                        <li><b>Service Availability (%)</b>: Service uptime impacted by security breaches</li>
-                        <li><b>API Error Rate (×100)</b>: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)</li>
+                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #4e4e6e;">
+                        <h4 style="margin-top: 0; color: #ff9d5c;">Security Impact on Infrastructure Metrics - Legend</h4>
+                        <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
+                        <li><b style="color: #429bf5;">CPU Utilization (%)</b>: Shows increased processing load during security incidents (brute force attacks, DDoS)</li>
+                        <li><b style="color: #ff6961;">Memory Usage (%)</b>: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)</li>
+                        <li><b style="color: #ff0000;">Network Latency (ms)</b>: Network delays resulting from security incidents</li>
+                        <li><b style="color: #77dd77;">Service Availability (%)</b>: Service uptime impacted by security breaches</li>
+                        <li><b style="color: #94bfff;">API Error Rate (×100)</b>: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)</li>
                         </ul>
-                        <p style="margin-bottom: 0; font-style: italic;">This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.</p>
+                        <p style="margin-bottom: 0; font-style: italic; color: #c0c0c0;">This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.</p>
                         </div>
                         """, unsafe_allow_html=True)
                         
