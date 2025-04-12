@@ -587,74 +587,94 @@ def display_chaos_simulation():
                 chaos_df = df[df['phase'] == 'Chaos'].copy().reset_index(drop=True)
                 remediation_df = df[df['phase'] == 'Remediation'].copy().reset_index(drop=True)
                 
-                # First chart: Primary metrics (combined system status metrics)
+                # System Status Metrics - separate charts for chaos and remediation
                 with st.session_state.primary_metrics_chart.container():
                     st.subheader("System Status Metrics")
                     
-                    # Create combined metrics dataframe for system status
-                    system_status_data = pd.DataFrame()
+                    col1, col2 = st.columns(2)
                     
-                    if not chaos_df.empty:
-                        # For chaos phase metrics
-                        chaos_metrics = chaos_df[['anomaly_score', 'system_health']].rename(
-                            columns={
-                                'anomaly_score': 'ChaosAnomaly',
-                                'system_health': 'ChaosHealth'
-                            })
-                        system_status_data = pd.concat([system_status_data, chaos_metrics])
+                    # Chaos phase system status metrics
+                    with col1:
+                        st.markdown("### Chaos Phase")
+                        
+                        if not chaos_df.empty:
+                            # Extract system status metrics for chaos phase
+                            chaos_metrics = chaos_df[['anomaly_score', 'system_health']].rename(
+                                columns={
+                                    'anomaly_score': 'Anomaly Score',
+                                    'system_health': 'System Health'
+                                })
+                            st.line_chart(chaos_metrics, color=["#FF0000", "#FFA500"])
+                        else:
+                            st.info("No chaos phase data available yet.")
                     
-                    if not remediation_df.empty:
-                        # For remediation phase metrics
-                        remediation_metrics = remediation_df[['anomaly_score', 'system_health']].rename(
-                            columns={
-                                'anomaly_score': 'RemediationAnomaly',
-                                'system_health': 'RemediationHealth'
-                            })
-                        system_status_data = pd.concat([system_status_data, remediation_metrics])
-                    
-                    # Display combined system status chart
-                    if not system_status_data.empty:
-                        st.line_chart(system_status_data)
-                    else:
-                        st.info("No system status data available yet.")
+                    # Remediation phase system status metrics
+                    with col2:
+                        st.markdown("### Remediation Phase")
+                        
+                        if not remediation_df.empty:
+                            # Extract system status metrics for remediation phase
+                            remediation_metrics = remediation_df[['anomaly_score', 'system_health']].rename(
+                                columns={
+                                    'anomaly_score': 'Anomaly Score',
+                                    'system_health': 'System Health'
+                                })
+                            st.line_chart(remediation_metrics, color=["#008000", "#0000FF"])
+                        else:
+                            st.info("No remediation phase data available yet.")
                 
-                # Second chart: Infrastructure metrics - all in one chart
+                # Infrastructure metrics - separate charts for chaos and remediation
                 with st.session_state.infra_metrics_chart.container():
                     st.subheader("Infrastructure Metrics")
                     
-                    # Create a single combined metrics dataframe for all infrastructure
-                    infra_metrics_data = pd.DataFrame()
+                    col1, col2 = st.columns(2)
                     
-                    # Define the metrics to use
+                    # Define the infrastructure metrics to show
                     metrics = {
-                        'cpu_utilization': 'CPU',
-                        'memory_usage': 'Memory', 
-                        'network_latency': 'Network',
-                        'api_error_rate': 'APIError',
-                        'service_availability': 'ServiceAvail'
+                        'cpu_utilization': 'CPU Utilization',
+                        'memory_usage': 'Memory Usage', 
+                        'network_latency': 'Network Latency',
+                        'api_error_rate': 'API Error Rate',
+                        'service_availability': 'Service Availability'
                     }
                     
-                    # Add chaos phase metrics
-                    if not chaos_df.empty:
-                        for metric_key, short_name in metrics.items():
-                            if metric_key in chaos_df.columns:
-                                chaos_df_renamed = chaos_df[[metric_key]].rename(
-                                    columns={metric_key: f'Chaos{short_name}'})
-                                infra_metrics_data = pd.concat([infra_metrics_data, chaos_df_renamed], axis=1)
+                    # Chaos phase infrastructure metrics
+                    with col1:
+                        st.markdown("### Chaos Phase")
+                        
+                        if not chaos_df.empty:
+                            # Create dataframe with all metrics for chaos phase
+                            chaos_infra = pd.DataFrame()
+                            for metric_key, display_name in metrics.items():
+                                if metric_key in chaos_df.columns:
+                                    chaos_infra[display_name] = chaos_df[metric_key]
+                            
+                            # Display the chaos infrastructure chart
+                            if not chaos_infra.empty:
+                                st.line_chart(chaos_infra)
+                            else:
+                                st.info("No infrastructure data for chaos phase.")
+                        else:
+                            st.info("No chaos phase data available yet.")
                     
-                    # Add remediation phase metrics
-                    if not remediation_df.empty:
-                        for metric_key, short_name in metrics.items():
-                            if metric_key in remediation_df.columns:
-                                remediation_df_renamed = remediation_df[[metric_key]].rename(
-                                    columns={metric_key: f'Remed{short_name}'})
-                                infra_metrics_data = pd.concat([infra_metrics_data, remediation_df_renamed], axis=1)
-                    
-                    # Display the combined infrastructure metrics chart
-                    if not infra_metrics_data.empty:
-                        st.line_chart(infra_metrics_data)
-                    else:
-                        st.info("No infrastructure metrics data available yet.")
+                    # Remediation phase infrastructure metrics
+                    with col2:
+                        st.markdown("### Remediation Phase")
+                        
+                        if not remediation_df.empty:
+                            # Create dataframe with all metrics for remediation phase
+                            remediation_infra = pd.DataFrame()
+                            for metric_key, display_name in metrics.items():
+                                if metric_key in remediation_df.columns:
+                                    remediation_infra[display_name] = remediation_df[metric_key]
+                            
+                            # Display the remediation infrastructure chart
+                            if not remediation_infra.empty:
+                                st.line_chart(remediation_infra)
+                            else:
+                                st.info("No infrastructure data for remediation phase.")
+                        else:
+                            st.info("No remediation phase data available yet.")
                 
                 # Get the most recent action details
                 latest_idx = len(df) - 1
