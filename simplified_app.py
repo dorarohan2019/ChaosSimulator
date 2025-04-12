@@ -516,19 +516,12 @@ def display_chaos_simulation():
                 latest_action_type = df.iloc[latest_idx]['action_type']
                 latest_action_desc = df.iloc[latest_idx]['action_description']
                 
-                # Single persistent infrastructure topology visualization
-                if 'topology_container' not in st.session_state:
-                    st.session_state.topology_container = st.empty()
-                
-                # Update the topology based on the latest action
+                # Update the infrastructure topology in session state (without displaying it)
+                # This keeps the topology updated for viewing in the Infrastructure Topology tab
                 if latest_action_type == "Chaos":
                     st.session_state.infra_topology.apply_chaos_action(latest_action_desc)
                 elif latest_action_type == "Remediation":
                     st.session_state.infra_topology.apply_remediation_action(latest_action_desc)
-                    
-                # Display the updated infrastructure visualization in the same container
-                with st.session_state.topology_container.container():
-                    display_infrastructure_topology(st.session_state.infra_topology, width=800, height=500, show_controls=False)
                 
                 # Show action log below chart
                 actions_df = df[['timestamps', 'action_type', 'action_description']]
@@ -732,11 +725,12 @@ def display_chaos_simulation():
                                       if action['anomaly_after'] < action['anomaly_before']) / len(st.session_state.remediation_actions) * 100
                     st.write(f"**Remediation effectiveness:** {effectiveness:.1f}%")
             
-            # Show infrastructure topology with animation controls when simulation is complete
-            if 'infra_topology' in st.session_state and 'simulation_complete' in st.session_state:
-                st.subheader("Infrastructure Topology Animation")
-                st.write("Watch how AWS infrastructure changed during the simulation:")
-                display_infrastructure_topology(st.session_state.infra_topology, width=800, height=500, show_controls=True)
+            # Add a link to the Infrastructure Topology tab for viewing the simulation effects
+            if 'simulation_complete' in st.session_state:
+                st.info("""
+                **Note:** The simulation has updated the AWS infrastructure topology with the applied chaos and remediation actions.  
+                Visit the **Infrastructure Topology** tab to see the current state of the AWS infrastructure.
+                """)
         
         except Exception as e:
             st.error(f"Simulation error: {str(e)}")
