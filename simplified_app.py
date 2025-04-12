@@ -335,6 +335,13 @@ def display_chaos_simulation():
         # Load environments
         chaos_env, remediation_env = load_agents()
         
+        # Mark agents as loaded/trained when simulation starts
+        if st.session_state.model_statuses['chaos_agent'] == 'Not Trained':
+            st.session_state.model_statuses['chaos_agent'] = 'Trained'
+            
+        if st.session_state.model_statuses['remediation_agent'] == 'Not Trained':
+            st.session_state.model_statuses['remediation_agent'] = 'Trained'
+        
         # Initialize simulation state
         if 'simulation_state' not in st.session_state:
             st.session_state.simulation_state = chaos_env.reset()
@@ -437,6 +444,11 @@ def display_chaos_simulation():
 # Anomaly detection page
 def display_anomaly_detection():
     st.header("Anomaly Detection")
+    
+    # Update model status when accessing the anomaly detection page
+    # This simulates loading the model when needed
+    if st.session_state.model_statuses['anomaly_model'] == 'Not Loaded':
+        st.session_state.model_statuses['anomaly_model'] = 'Loaded'
     
     st.info("This page would display anomaly detection capabilities, including model configuration and real-time alerts.")
     
@@ -1413,6 +1425,14 @@ def display_model_training():
             
             # Training complete
             status_text.success("Training complete!")
+            
+            # Update model status in session state based on model type
+            if model_type == "LSTM Autoencoder (Anomaly Detection)":
+                st.session_state.model_statuses['anomaly_model'] = f"Trained (Epochs: {epochs})"
+            elif model_type == "RL Agent (Chaos)":
+                st.session_state.model_statuses['chaos_agent'] = f"Trained (Steps: {total_timesteps})"
+            elif model_type == "RL Agent (Remediation)":
+                st.session_state.model_statuses['remediation_agent'] = f"Trained (Steps: {total_timesteps})"
         
         # Show evaluation results based on actual training parameters
         st.subheader("Training Results")
