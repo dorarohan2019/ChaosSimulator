@@ -8,6 +8,19 @@ import numpy as np
 from datetime import datetime, timedelta
 import logging
 from collections import deque
+import requests  # For Slack API fallback if slack_sdk is not available
+
+# Define Slack constants
+SLACK_CHANNEL = "general"  # Default channel, can be overridden
+APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
+
+# Try to import Slack SDK, but provide fallback if not available
+try:
+    from slack_sdk import WebClient
+    from slack_sdk.errors import SlackApiError
+    SLACK_SDK_AVAILABLE = True
+except ImportError:
+    SLACK_SDK_AVAILABLE = False
 # Import infrastructure topology module
 from infrastructure_topology import InfrastructureTopology, display_infrastructure_topology
 
@@ -395,6 +408,179 @@ def check_required_files():
         os.makedirs(directory, exist_ok=True)
     
     return True
+
+# Slack integration functions
+def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
+    """
+    Send a message to a Slack channel
+    
+    Args:
+        slack_token (str): Slack API token
+        message (str): Message to send
+        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        
+    Returns:
+        str: Message timestamp if successful, None otherwise
+    """
+    if not slack_token:
+        logger.warning("No Slack token provided. Skipping notification.")
+        return None
+        
+    try:
+        if SLACK_SDK_AVAILABLE:
+            # Use slack_sdk if available
+            slack_client = WebClient(token=slack_token)
+            response = slack_client.chat_postMessage(channel=channel, text=message)
+            return response["ts"]
+        else:
+            # Fallback to direct API call
+            headers = {
+                'Authorization': f'Bearer {slack_token}',
+                'Content-Type': 'application/json'
+            }
+            data = {
+                'channel': channel,
+                'text': message
+            }
+            response = requests.post('https://slack.com/api/chat.postMessage', 
+                                     headers=headers, json=data)
+            if response.status_code == 200 and response.json().get('ok'):
+                return response.json().get('ts')
+            else:
+                logger.error(f"Error sending Slack message: {response.text}")
+                return None
+    except Exception as e:
+        logger.error(f"Error sending Slack message: {str(e)}")
+        return None
+
+def request_approval(slack_token, channel=SLACK_CHANNEL):
+    """
+    Request approval for a chaos simulation
+    
+    Args:
+        slack_token (str): Slack API token
+        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        
+    Returns:
+        str: Message timestamp if successful, None otherwise
+    """
+    message = """
+🚨 *Security Chaos Simulation Approval Request* 🚨
+
+A chaos simulation that will introduce security vulnerabilities is ready to start. 
+This simulation will test our detection and remediation capabilities.
+
+Reply with:
+• 'approve' to proceed with the simulation
+• 'deny' to cancel the simulation
+
+*Note*: This simulation runs in an isolated environment without affecting production systems.
+"""
+    return send_slack_message(slack_token, message, channel)
+
+def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL):
+    """
+    Check for approval response
+    
+    Args:
+        slack_token (str): Slack API token
+        original_ts (str): Original message timestamp
+        channel (str): Channel to check (default: SLACK_CHANNEL)
+        
+    Returns:
+        str: 'approved', 'denied', or None if no response
+    """
+    if not slack_token or not original_ts:
+        logger.warning("Missing slack token or timestamp. Skipping approval check.")
+        return None
+        
+    try:
+        if SLACK_SDK_AVAILABLE:
+            # Use slack_sdk if available
+            slack_client = WebClient(token=slack_token)
+            history = slack_client.conversations_history(channel=channel, oldest=original_ts)
+            for msg in history["messages"]:
+                if msg.get("ts") > original_ts and "text" in msg:
+                    text = msg["text"].lower()
+                    if "approve" in text:
+                        return "approved"
+                    elif "deny" in text:
+                        return "denied"
+        else:
+            # Fallback to direct API call
+            headers = {
+                'Authorization': f'Bearer {slack_token}',
+                'Content-Type': 'application/json'
+            }
+            params = {
+                'channel': channel,
+                'oldest': original_ts
+            }
+            response = requests.get('https://slack.com/api/conversations.history',
+                                   headers=headers, params=params)
+            if response.status_code == 200 and response.json().get('ok'):
+                messages = response.json().get('messages', [])
+                for msg in messages:
+                    if msg.get("ts") > original_ts and "text" in msg:
+                        text = msg["text"].lower()
+                        if "approve" in text:
+                            return "approved"
+                        elif "deny" in text:
+                            return "denied"
+        
+        return None
+    except Exception as e:
+        logger.error(f"Error checking for approval: {str(e)}")
+        return None
+
+def notify_simulation_start(slack_token, num_actions, channel=SLACK_CHANNEL):
+    """
+    Notify that a simulation has started
+    
+    Args:
+        slack_token (str): Slack API token
+        num_actions (int): Number of chaos actions in the simulation
+        channel (str): Channel to send to (default: SLACK_CHANNEL)
+    """
+    message = f"""
+🚀 *Security Chaos Simulation Started* 🚀
+
+• Simulation will introduce {num_actions} security vulnerabilities
+• Each vulnerability will be followed by automated remediation
+• Duration: Approximately {num_actions*2} minutes
+• Results will be available in the dashboard when complete
+
+Monitor progress in the dashboard for real-time metrics.
+"""
+    send_slack_message(slack_token, message, channel)
+
+def notify_simulation_complete(slack_token, results, channel=SLACK_CHANNEL):
+    """
+    Notify that a simulation has completed with results
+    
+    Args:
+        slack_token (str): Slack API token
+        results (dict): Simulation results
+        channel (str): Channel to send to (default: SLACK_CHANNEL)
+    """
+    # Extract relevant metrics
+    num_vulns = results.get('num_vulnerabilities', 0)
+    num_remediations = results.get('num_remediations', 0)
+    avg_risk = results.get('avg_risk_score', 0)
+    effectiveness = results.get('effectiveness_pct', 0)
+    
+    message = f"""
+✅ *Security Chaos Simulation Completed* ✅
+
+*Summary:*
+• {num_vulns} security vulnerabilities simulated
+• {num_remediations} automated remediations applied
+• Average risk score: {avg_risk:.2f}
+• Remediation effectiveness: {effectiveness:.1f}%
+
+Full details available in the dashboard.
+"""
+    send_slack_message(slack_token, message, channel)
 
 def provision_localstack_resources():
     return {
