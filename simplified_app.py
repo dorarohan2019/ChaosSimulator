@@ -2359,14 +2359,38 @@ def display_impact_analysis():
         if not chaos_df.empty:
             # Group by description to get average impact of each action type
             if 'description' in chaos_df.columns:
-                # Extract the main action type from the description
+                # Extract the main action type from the description with more descriptive names
+                chaos_action_mapping = {
+                    "CPU": "CPU Stress/Failure",
+                    "Memory": "Memory Exhaust/Leak",
+                    "Network": "Network Disruption",
+                    "API": "API Failure/Throttling",
+                    "Service": "Service Outage",
+                    "Instance": "Instance Termination",
+                    "Termination": "Resource Termination",
+                    "DNS": "DNS Failure/Timeout",
+                    "Database": "Database Disruption",
+                    "Load balancer": "Load Balancer Malfunction",
+                    "EC2": "EC2 Instance Failure",
+                    "Lambda": "Lambda Function Disruption",
+                    "S3": "S3 Storage Failure",
+                    "Route": "Route Table Corruption",
+                    "Disk": "Disk Failure/Corruption",
+                    "Security": "Security Group Disruption",
+                    "RDS": "RDS Database Failure",
+                    "Throttling": "Rate Limit Throttling",
+                    "Latency": "High Network Latency",
+                    "Access": "Access Denial",
+                    "Rule": "Rule Misconfiguration",
+                    "Concurrency": "Concurrency Limitation",
+                    "Group": "Group Isolation",
+                    "Space": "Disk Space Exhaustion"
+                }
+                
+                # Apply the detailed mapping
                 chaos_df['action_type'] = chaos_df['description'].apply(
-                    lambda x: next((key for key in ["CPU", "Memory", "Network", 
-                                                  "API", "Service", "Instance", "Termination",
-                                                  "DNS", "Database", "Load balancer", 
-                                                  "EC2", "Lambda", "S3", "Route", "Disk", "Security",
-                                                  "RDS", "Throttling", "Latency", "Access", "Rule",
-                                                  "Concurrency", "Group", "Space"] if key.lower() in x.lower()), x.split()[0])
+                    lambda x: next((chaos_action_mapping[key] for key in chaos_action_mapping.keys() 
+                                  if key.lower() in x.lower()), x.split()[0])
                 )
                 
                 # Group by action type and compute average anomaly score (impact)
@@ -2406,13 +2430,35 @@ def display_impact_analysis():
         if remediation_df is not None and not remediation_df.empty:
             # Group by description to get average effectiveness of each remediation type
             if 'description' in remediation_df.columns and 'improvement' in remediation_df.columns:
-                # Extract the main remediation type from the description
+                # Extract the main remediation type with more descriptive names
+                remediation_action_mapping = {
+                    "Scale": "Auto-Scaling Service Capacity",
+                    "Restart": "Service/Instance Restart",
+                    "Failover": "Failover to Redundant System",
+                    "Throttle": "Request Throttling Management",
+                    "Rollback": "Configuration Rollback",
+                    "Provision": "New Resource Provisioning",
+                    "Reconfigure": "System Reconfiguration",
+                    "Isolate": "Fault Isolation/Containment",
+                    "Restore": "Backup Restoration",
+                    "Fix": "Error Resolution/Patching",
+                    "Increase": "Resource Capacity Increase",
+                    "Decrease": "Resource Throttling",
+                    "Remove": "Breaking Component Removal",
+                    "Balance": "Load Rebalancing",
+                    "Heal": "Self-Healing Activation",
+                    "Auto": "Automated Recovery",
+                    "Reset": "Connection Reset/Renewal",
+                    "Clean": "Resource Cleanup",
+                    "Optimize": "Performance Optimization",
+                    "Update": "Component Update",
+                    "Patch": "Security/Stability Patch",
+                    "Recover": "Disaster Recovery Process"
+                }
+                
+                # Apply the detailed mapping
                 remediation_df['remediation_type'] = remediation_df['description'].apply(
-                    lambda x: next((key for key in ["Scale", "Restart", "Failover", "Throttle", 
-                                                  "Rollback", "Provision", "Reconfigure", "Isolate",
-                                                  "Restore", "Fix", "Increase", "Decrease", "Remove",
-                                                  "Balance", "Heal", "Auto", "Reset", "Clean", "Optimize",
-                                                  "Update", "Patch", "Recover"] 
+                    lambda x: next((remediation_action_mapping[key] for key in remediation_action_mapping.keys() 
                                   if key.lower() in x.lower()), x.split()[0])
                 )
                 
