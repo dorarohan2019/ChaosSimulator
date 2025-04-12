@@ -206,6 +206,16 @@ def save_model(model_type, model_data):
         import shutil
         shutil.copy2(filename, latest_filename)
         
+        # Write directly to a metadata file to track the model timestamp and path
+        metadata_file = f"models/{model_type}_metadata.json"
+        model_metadata = {
+            'timestamp': timestamp,
+            'latest_path': filename,
+            'trained_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        with open(metadata_file, 'w') as f:
+            json.dump(model_metadata, f, indent=2)
+        
         # Create a json index file to track all models
         index_file = "models/model_index.json"
         model_index = {}
