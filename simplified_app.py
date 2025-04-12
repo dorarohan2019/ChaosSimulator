@@ -446,16 +446,91 @@ def display_anomaly_detection():
     
     # Generate mock anomaly data
     import random
+    import pandas as pd
+    import numpy as np
     from datetime import datetime, timedelta
     dates = [datetime.now() - timedelta(hours=i) for i in range(48, 0, -1)]
     anomaly_scores = [random.uniform(0.01, 0.08) for _ in range(40)] + [random.uniform(0.15, 0.3) for _ in range(8)]
+    random.shuffle(anomaly_scores)  # Mix them up for a more realistic pattern
     
-    # Create a simple chart using st.line_chart
-    chart_data = {"time": dates, "anomaly_score": anomaly_scores}
+    # Create pandas DataFrame for plotting
+    df = pd.DataFrame({
+        "timestamp": dates,
+        "anomaly_score": anomaly_scores
+    })
     
-    # Add horizontal line for threshold
-    st.line_chart({"anomaly_score": anomaly_scores})
-    st.write(f"The red points indicate anomaly scores above the threshold of {threshold}")
+    # Create two separate series for normal and anomaly points
+    normal_points = df[df["anomaly_score"] <= threshold]
+    anomaly_points = df[df["anomaly_score"] > threshold]
+    
+    # Display the threshold line
+    st.line_chart({"anomaly_score": anomaly_scores, "threshold": [threshold] * len(dates)})
+    
+    # Create visualization to show points above and below threshold
+    st.subheader("Anomaly Detection")
+    
+    # Create custom charts that works with available libraries
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Normal points information
+        st.markdown("### Normal Points")
+        st.write(f"**Count:** {len(normal_points)} points")
+        st.write("**Average score:** {:.4f}".format(normal_points["anomaly_score"].mean() if not normal_points.empty else 0))
+        
+        # Show sample normal points
+        if not normal_points.empty:
+            st.write("**Sample normal points:**")
+            sample_normal = normal_points.sample(min(5, len(normal_points)))
+            for idx, row in sample_normal.iterrows():
+                score = row["anomaly_score"]
+                time_str = row["timestamp"].strftime("%H:%M")
+                st.write(f"• {time_str}: {score:.4f} ✓")
+    
+    with col2:
+        # Anomaly points information
+        st.markdown("### Anomaly Points")
+        st.write(f"**Count:** {len(anomaly_points)} points")
+        st.write("**Average score:** {:.4f}".format(anomaly_points["anomaly_score"].mean() if not anomaly_points.empty else 0))
+        
+        # Show sample anomaly points
+        if not anomaly_points.empty:
+            st.write("**Sample anomaly points:**")
+            sample_anomalies = anomaly_points.sample(min(5, len(anomaly_points)))
+            for idx, row in sample_anomalies.iterrows():
+                score = row["anomaly_score"]
+                time_str = row["timestamp"].strftime("%H:%M")
+                st.write(f"• {time_str}: {score:.4f} ⚠️")
+    
+    # Create visual representation of anomaly distribution
+    st.subheader("Score Distribution")
+    
+    # Use histogram with two colors
+    bins = np.linspace(0, max(anomaly_scores) + 0.05, 20)
+    hist_data = np.histogram(anomaly_scores, bins=bins)
+    bin_edges = hist_data[1][:-1]  # Remove the last edge
+    bin_heights = hist_data[0]
+    bin_colors = ['blue' if edge <= threshold else 'red' for edge in bin_edges]
+    
+    # Convert to chart format
+    chart_data = {f"bin_{i}": [height if bin_colors[i] == color else 0] 
+                 for i, (height, color) in enumerate(zip(bin_heights, bin_colors)) 
+                 for color in ['blue', 'red']}
+    
+    # Display chart
+    st.bar_chart(chart_data)
+    
+    # Add clear legend
+    st.markdown("""
+    <div style="display: flex; align-items: center; margin-bottom: 20px;">
+        <div style="width: 20px; height: 20px; background-color: blue; margin-right: 10px;"></div>
+        <div style="margin-right: 30px;">Normal (≤ {0})</div>
+        <div style="width: 20px; height: 20px; background-color: red; margin-right: 10px;"></div>
+        <div>Anomaly (> {0})</div>
+    </div>
+    """.format(threshold), unsafe_allow_html=True)
+    
+    st.write(f"The highlighted red values indicate anomaly scores above the threshold of {threshold:.4f}")
 
 # Model training page
 def display_model_training():
