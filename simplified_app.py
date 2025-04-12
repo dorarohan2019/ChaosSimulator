@@ -11,8 +11,8 @@ from collections import deque
 import requests  # For Slack API fallback if slack_sdk is not available
 
 # Define Slack constants
-SLACK_CHANNEL = "C08LJRT9VM3"  # Channel ID
-SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name without # prefix
+SLACK_CHANNEL_ID = "C08LJRT9VM3"  # Channel ID for posting messages
+SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name for reading history
 SLACK_DEFAULT_TOKEN = "xoxb-8693650061862-8686339764119-xjW7OsW6q4r9jB2DL5ZsZp8b"  # Default token
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
@@ -412,14 +412,14 @@ def check_required_files():
     return True
 
 # Slack integration functions
-def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
+def send_slack_message(slack_token, message, channel=SLACK_CHANNEL_ID):
     """
     Send a message to a Slack channel
     
     Args:
         slack_token (str): Slack API token
         message (str): Message to send
-        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
         
     Returns:
         str: Message timestamp if successful, None otherwise
@@ -457,13 +457,13 @@ def send_slack_message(slack_token, message, channel=SLACK_CHANNEL):
         logger.error(f"Error sending Slack message: {str(e)}")
         return None
 
-def request_approval(slack_token, channel=SLACK_CHANNEL):
+def request_approval(slack_token, channel=SLACK_CHANNEL_ID):
     """
     Request approval for a chaos simulation
     
     Args:
         slack_token (str): Slack API token
-        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
         
     Returns:
         str: Message timestamp if successful, None otherwise
@@ -482,14 +482,14 @@ Reply with:
 """
     return send_slack_message(slack_token, message, channel)
 
-def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL):
+def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_NAME):
     """
     Check for approval response
     
     Args:
         slack_token (str): Slack API token
         original_ts (str): Original message timestamp
-        channel (str): Channel to check (default: SLACK_CHANNEL)
+        channel (str): Channel name to check (default: SLACK_CHANNEL_NAME)
         
     Returns:
         str: 'approved', 'denied', or None if no response
@@ -537,14 +537,14 @@ def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL):
         logger.error(f"Error checking for approval: {str(e)}")
         return None
 
-def notify_simulation_start(slack_token, num_actions, channel=SLACK_CHANNEL):
+def notify_simulation_start(slack_token, num_actions, channel=SLACK_CHANNEL_ID):
     """
     Notify that a simulation has started
     
     Args:
         slack_token (str): Slack API token
         num_actions (int): Number of chaos actions in the simulation
-        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
     """
     message = f"""
 🚀 *Security Chaos Simulation Started* 🚀
@@ -558,14 +558,14 @@ Monitor progress in the dashboard for real-time metrics.
 """
     send_slack_message(slack_token, message, channel)
 
-def notify_simulation_complete(slack_token, results, channel=SLACK_CHANNEL):
+def notify_simulation_complete(slack_token, results, channel=SLACK_CHANNEL_ID):
     """
     Notify that a simulation has completed with results
     
     Args:
         slack_token (str): Slack API token
         results (dict): Simulation results
-        channel (str): Channel to send to (default: SLACK_CHANNEL)
+        channel (str): Channel ID to send to (default: SLACK_CHANNEL_ID)
     """
     # Extract relevant metrics
     num_vulns = results.get('num_vulnerabilities', 0)
@@ -709,8 +709,9 @@ def display_chaos_simulation():
             
         # Display Slack configuration info
         if st.session_state.slack_token:
-            st.success(f"Using Slack channel ID: {SLACK_CHANNEL}")
-            st.info("Slack notifications are enabled")
+            st.success(f"Using Slack channel ID: {SLACK_CHANNEL_ID}")
+            st.info(f"Using Slack channel name: {SLACK_CHANNEL_NAME} for approval checks")
+            st.info("Slack is the only approval method for this simulation")
         
         # Approval workflow
         if not st.session_state.approval_requested:
@@ -723,9 +724,9 @@ def display_chaos_simulation():
                         message_ts = request_approval(st.session_state.slack_token)
                         if message_ts:
                             st.session_state.approval_message_ts = message_ts
-                            st.success("Approval request sent to Slack.")
+                            st.success("Approval request sent to Slack. Please check the Slack channel for approval.")
                         else:
-                            st.warning("Failed to send approval request to Slack. Proceeding with local approval.")
+                            st.error("Failed to send approval request to Slack. Check your Slack token and channel ID and try again.")
                 
                 st.success("Approval requested. Please confirm to proceed.")
                 st.rerun()
@@ -739,28 +740,41 @@ def display_chaos_simulation():
         else:
             st.success("✅ Ready to Run")
     
-    # Approval confirmation
+    # Approval confirmation - using Slack as the only source for approval
     if st.session_state.approval_requested and not st.session_state.simulation_running:
-        st.info("⚠️ Chaos experiments can disrupt systems. Confirm to proceed.")
+        st.info("⚠️ Chaos experiments can disrupt systems. Approval must be granted via Slack.")
         
-        confirm_col1, confirm_col2 = st.columns(2)
-        
-        with confirm_col1:
-            if st.button("✅ Approve Simulation"):
-                st.session_state.simulation_running = True
+        # Check for Slack approval
+        if 'approval_message_ts' in st.session_state and st.session_state.slack_token:
+            with st.spinner("Checking for approval response in Slack..."):
+                approval_status = check_for_approval(
+                    st.session_state.slack_token, 
+                    st.session_state.approval_message_ts,
+                    SLACK_CHANNEL_NAME
+                )
                 
-                # Send notification if token exists
-                if st.session_state.slack_token:
+                if approval_status == "approved":
+                    st.success("✅ Simulation approved via Slack! Starting simulation...")
+                    st.session_state.simulation_running = True
+                    
+                    # Send notification about simulation start
                     with st.spinner("Sending simulation start notification..."):
-                        # Send notification about simulation start
                         notify_simulation_start(st.session_state.slack_token, num_actions)
-                
-                st.rerun()
-        
-        with confirm_col2:
-            if st.button("❌ Deny Simulation"):
-                st.session_state.approval_requested = False
-                st.rerun()
+                    
+                    st.rerun()
+                    
+                elif approval_status == "denied":
+                    st.error("❌ Simulation denied via Slack.")
+                    st.session_state.approval_requested = False
+                    st.rerun()
+                else:
+                    st.info("Waiting for approval via Slack. Please reply with 'approve' or 'deny' in the Slack channel.")
+                    
+                    # Add a button to manually refresh approval status
+                    if st.button("Check Slack for Approval"):
+                        st.rerun()
+        else:
+            st.warning("Slack approval message not sent properly. Please try requesting approval again.")
     
     # Run simulation if approved or display previous results if completed
     if st.session_state.simulation_running or st.session_state.simulation_complete:
