@@ -994,110 +994,110 @@ def display_chaos_simulation():
                         elif "service" in action_description and ("Restart" in remediation_description or "Failover" in remediation_description):
                             remediation_targets_issue = True
                 
-                # Infrastructure metrics improvements are better when targeted properly
-                
-                # CPU utilization improvements
-                current_cpu = st.session_state.simulation_metrics['cpu_utilization'][-1]
-                if "CPU" in action_description and remediation_targets_issue:
-                    # Targeted fix for CPU issues
-                    cpu_util_after = max(30, current_cpu * 0.5)
-                elif remediation_type in ["Scale", "Provision", "Restart"]:
-                    # General improvement for CPU with these remediation types
-                    cpu_util_after = max(40, current_cpu * 0.7)
-                else:
-                    # Slight indirect improvement
-                    cpu_util_after = max(45, current_cpu * 0.85)
-                
-                # Memory usage improvements
-                current_memory = st.session_state.simulation_metrics['memory_usage'][-1]
-                if "memory" in action_description and remediation_targets_issue:
-                    # Targeted fix for memory issues
-                    memory_usage_after = max(35, current_memory * 0.6)
-                elif remediation_type in ["Restart", "Provision", "Rollback"]:
-                    # General improvement for memory with these remediation types
-                    memory_usage_after = max(45, current_memory * 0.75)
-                else:
-                    # Slight indirect improvement
-                    memory_usage_after = max(50, current_memory * 0.9)
-                
-                # Network latency improvements
-                current_latency = st.session_state.simulation_metrics['network_latency'][-1]
-                if ("network" in action_description or "DNS" in action_description) and remediation_targets_issue:
-                    # Targeted fix for network issues
-                    network_latency_after = max(30, current_latency * 0.3)
-                elif remediation_type in ["Failover", "Reconfigure", "Isolate"]:
-                    # General improvement for network with these remediation types
-                    network_latency_after = max(40, current_latency * 0.5)
-                else:
-                    # Slight indirect improvement
-                    network_latency_after = max(50, current_latency * 0.8)
-                
-                # API error rate improvements
-                current_error_rate = st.session_state.simulation_metrics['api_error_rate'][-1]
-                if "API" in action_description and remediation_targets_issue:
-                    # Targeted fix for API issues
-                    api_error_rate_after = max(0.01, current_error_rate * 0.25)
-                elif remediation_type in ["Throttle", "Rollback", "Failover"]:
-                    # General improvement for API with these remediation types
-                    api_error_rate_after = max(0.01, current_error_rate * 0.4)
-                else:
-                    # Slight indirect improvement
-                    api_error_rate_after = max(0.01, current_error_rate * 0.7)
-                
-                # Service availability improvements
-                availability_after = min(0.98, max(0.8, 1.0 - (anomaly_after * 0.5)))
-                
-                # Record metrics after remediation
-                st.session_state.simulation_metrics['timestamps'].append(datetime.now())
-                st.session_state.simulation_metrics['anomaly_score'].append(anomaly_after)
-                st.session_state.simulation_metrics['system_health'].append(system_health_after)
-                st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util_after)
-                st.session_state.simulation_metrics['memory_usage'].append(memory_usage_after)
-                st.session_state.simulation_metrics['network_latency'].append(network_latency_after)
-                st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate_after)
-                st.session_state.simulation_metrics['service_availability'].append(availability_after)
-                st.session_state.simulation_metrics['action_type'].append("Remediation")
-                st.session_state.simulation_metrics['action_description'].append(remediation_description)
-                st.session_state.simulation_metrics['phase'].append("Remediation")
-                
-                # Record remediation action
-                st.session_state.remediation_actions.append({
-                    'step': step,
-                    'action': remediation_id,
-                    'description': remediation_description,
-                    'reward': remediation_reward,
-                    'anomaly_before': anomaly_score,
-                    'anomaly_after': anomaly_after,
-                    'improvement': anomaly_score - anomaly_after,
-                    'timestamp': datetime.now()
-                })
-                
-                # Display updated metrics
-                metrics_container.write({
-                    'Anomaly Before': f"{anomaly_score:.4f}",
-                    'Anomaly After': f"{anomaly_after:.4f}",
-                    'System Health': f"{system_health_after:.4f}",
-                    'Improvement': f"{anomaly_score - anomaly_after:.4f}"
-                })
-                
-                # Update visualization
-                update_metrics_chart()
-                
-                # Set the state for next iteration
-                st.session_state.simulation_state = remediated_state
-                
-                # Delay for visualization
-                time.sleep(delay)
-                
-                if remediation_done:
-                    status_container.warning("Remediation completed the simulation early.")
-                    break
-                
-                # Check if this was the last iteration
-                if step == num_actions - 1:
-                    # Simulation completed
-                    progress_bar.progress(1.0)
-                    status_container.success("Simulation completed!")
+                                        # Infrastructure metrics improvements are better when targeted properly
+                        
+                        # CPU utilization improvements
+                        current_cpu = st.session_state.simulation_metrics['cpu_utilization'][-1]
+                        if "CPU" in action_description and remediation_targets_issue:
+                            # Targeted fix for CPU issues
+                            cpu_util_after = max(30, current_cpu * 0.5)
+                        elif remediation_type in ["Scale", "Provision", "Restart"]:
+                            # General improvement for CPU with these remediation types
+                            cpu_util_after = max(40, current_cpu * 0.7)
+                        else:
+                            # Slight indirect improvement
+                            cpu_util_after = max(45, current_cpu * 0.85)
+                        
+                        # Memory usage improvements
+                        current_memory = st.session_state.simulation_metrics['memory_usage'][-1]
+                        if "memory" in action_description and remediation_targets_issue:
+                            # Targeted fix for memory issues
+                            memory_usage_after = max(35, current_memory * 0.6)
+                        elif remediation_type in ["Restart", "Provision", "Rollback"]:
+                            # General improvement for memory with these remediation types
+                            memory_usage_after = max(45, current_memory * 0.75)
+                        else:
+                            # Slight indirect improvement
+                            memory_usage_after = max(50, current_memory * 0.9)
+                        
+                        # Network latency improvements
+                        current_latency = st.session_state.simulation_metrics['network_latency'][-1]
+                        if ("network" in action_description or "DNS" in action_description) and remediation_targets_issue:
+                            # Targeted fix for network issues
+                            network_latency_after = max(30, current_latency * 0.3)
+                        elif remediation_type in ["Failover", "Reconfigure", "Isolate"]:
+                            # General improvement for network with these remediation types
+                            network_latency_after = max(40, current_latency * 0.5)
+                        else:
+                            # Slight indirect improvement
+                            network_latency_after = max(50, current_latency * 0.8)
+                        
+                        # API error rate improvements
+                        current_error_rate = st.session_state.simulation_metrics['api_error_rate'][-1]
+                        if "API" in action_description and remediation_targets_issue:
+                            # Targeted fix for API issues
+                            api_error_rate_after = max(0.01, current_error_rate * 0.25)
+                        elif remediation_type in ["Throttle", "Rollback", "Failover"]:
+                            # General improvement for API with these remediation types
+                            api_error_rate_after = max(0.01, current_error_rate * 0.4)
+                        else:
+                            # Slight indirect improvement
+                            api_error_rate_after = max(0.01, current_error_rate * 0.7)
+                        
+                        # Service availability improvements
+                        availability_after = min(0.98, max(0.8, 1.0 - (anomaly_after * 0.5)))
+                        
+                        # Record metrics after remediation
+                        st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                        st.session_state.simulation_metrics['anomaly_score'].append(anomaly_after)
+                        st.session_state.simulation_metrics['system_health'].append(system_health_after)
+                        st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util_after)
+                        st.session_state.simulation_metrics['memory_usage'].append(memory_usage_after)
+                        st.session_state.simulation_metrics['network_latency'].append(network_latency_after)
+                        st.session_state.simulation_metrics['api_error_rate'].append(api_error_rate_after)
+                        st.session_state.simulation_metrics['service_availability'].append(availability_after)
+                        st.session_state.simulation_metrics['action_type'].append("Remediation")
+                        st.session_state.simulation_metrics['action_description'].append(remediation_description)
+                        st.session_state.simulation_metrics['phase'].append("Remediation")
+                        
+                        # Record remediation action
+                        st.session_state.remediation_actions.append({
+                            'step': step,
+                            'action': remediation_id,
+                            'description': remediation_description,
+                            'reward': remediation_reward,
+                            'anomaly_before': anomaly_score,
+                            'anomaly_after': anomaly_after,
+                            'improvement': anomaly_score - anomaly_after,
+                            'timestamp': datetime.now()
+                        })
+                        
+                        # Display updated metrics
+                        metrics_container.write({
+                            'Anomaly Before': f"{anomaly_score:.4f}",
+                            'Anomaly After': f"{anomaly_after:.4f}",
+                            'System Health': f"{system_health_after:.4f}",
+                            'Improvement': f"{anomaly_score - anomaly_after:.4f}"
+                        })
+                        
+                        # Update visualization
+                        update_metrics_chart()
+                        
+                        # Set the state for next iteration
+                        st.session_state.simulation_state = remediated_state
+                        
+                        # Delay for visualization
+                        time.sleep(delay)
+                        
+                        if remediation_done:
+                            status_container.warning("Remediation completed the simulation early.")
+                            break
+                        
+                        # Check if this was the last iteration
+                        if step == num_actions - 1:
+                            # Simulation completed
+                            progress_bar.progress(1.0)
+                            status_container.success("Simulation completed!")
             except Exception as e:
                 st.error(f"Simulation error: {str(e)}")
                 st.session_state.simulation_running = False
