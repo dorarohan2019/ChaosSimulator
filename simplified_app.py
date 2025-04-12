@@ -2270,76 +2270,169 @@ def display_model_training():
 
 # Logs and analysis page
 def display_infrastructure_topology():
-    st.header("AWS Infrastructure Topology")
+    """Display impact analysis of chaos and remediation actions on the system."""
+    st.header("Impact Analysis")
     
-    # Create/retrieve topology from session state
-    if 'infra_topology' not in st.session_state:
-        st.session_state.infra_topology = InfrastructureTopology()
-    
-    # Clean, simplified infrastructure view
-    st.write("This view shows the current state of your AWS infrastructure components and their connections.")
-    
-    # Add some manual test actions for demonstration
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("Reset Infrastructure"):
-            st.session_state.infra_topology.reset()
-            st.rerun()
-    
-    with col2:
-        if st.button("Simulate Chaos Event"):
-            actions = [
-                "EC2 instance termination",
-                "RDS CPU stress",
-                "API throttling",
-                "Network latency injection",
-                "Lambda concurrency limitation",
-                "S3 access throttling"
-            ]
-            # Select a random chaos action
-            action = random.choice(actions)
-            st.session_state.infra_topology.apply_chaos_action(action)
-            st.success(f"Applied chaos action: {action}")
-            st.rerun()
-    
-    with col3:
-        if st.button("Apply Remediation"):
-            if st.session_state.infra_topology.state_history:
-                # Get the last chaos action
-                last_action = None
-                for event in reversed(st.session_state.infra_topology.state_history):
-                    if event['action'] == 'chaos':
-                        last_action = event['description']
-                        break
+    # Check if simulation has been run
+    if 'chaos_actions' in st.session_state and 'remediation_actions' in st.session_state and len(st.session_state.chaos_actions) > 0:
+        # Simulation has been run, so analyze the impact
+        st.subheader("Chaos & Remediation Impact Analysis")
+        
+        # First, analyze chaos actions by their impact on system metrics
+        chaos_df = pd.DataFrame(st.session_state.chaos_actions)
+        remediation_df = pd.DataFrame(st.session_state.remediation_actions) if len(st.session_state.remediation_actions) > 0 else None
+        
+        # ------------------- Chaos Actions Impact -------------------
+        st.markdown("### Chaos Actions Impact")
+        
+        if not chaos_df.empty:
+            # Group by description to get average impact of each action type
+            if 'description' in chaos_df.columns:
+                # Extract the main action type from the description
+                chaos_df['action_type'] = chaos_df['description'].apply(
+                    lambda x: next((key for key in ["CPU spike", "Memory leak", "Network partition", 
+                                                  "API rate limiting", "Service termination", 
+                                                  "DNS failure", "Database connection", "Load balancer"] if key in x), "Other")
+                )
                 
-                if last_action:
-                    remedy = f"Fix {last_action.lower()}"
-                    st.session_state.infra_topology.apply_remediation_action(remedy)
-                    st.success(f"Applied remediation: {remedy}")
-                else:
-                    st.warning("No chaos event to remediate")
+                # Group by action type and compute average anomaly score (impact)
+                chaos_impact = chaos_df.groupby('action_type')['anomaly_score'].mean().reset_index()
+                chaos_impact = chaos_impact.sort_values('anomaly_score', ascending=False)
+                chaos_impact.columns = ['Chaos Action', 'Impact Score']
+                
+                # Create a bar chart of chaos action impacts
+                st.bar_chart(chaos_impact.set_index('Chaos Action'))
+                
+                # Add a table with more detailed information
+                st.write("**Chaos Actions Ranked by Impact Severity:**")
+                
+                # Add a count column and format the score
+                detailed_chaos = chaos_df.groupby('action_type').agg({
+                    'anomaly_score': ['mean', 'max', 'count']
+                }).reset_index()
+                
+                detailed_chaos.columns = ['Action Type', 'Average Impact', 'Max Impact', 'Count']
+                detailed_chaos = detailed_chaos.sort_values('Average Impact', ascending=False)
+                
+                # Format for display
+                detailed_chaos['Average Impact'] = detailed_chaos['Average Impact'].apply(lambda x: f"{x:.4f}")
+                detailed_chaos['Max Impact'] = detailed_chaos['Max Impact'].apply(lambda x: f"{x:.4f}")
+                
+                st.table(detailed_chaos)
             else:
-                st.warning("No chaos event to remediate")
-            st.rerun()
-    
-    # Display the infrastructure topology - use the imported function
-    from infrastructure_topology import display_infrastructure_topology as display_topology
-    display_topology(st.session_state.infra_topology)
-    
-    # Information about the visualization
-    with st.expander("About this visualization"):
-        st.write("""
-        This simplified AWS infrastructure topology shows the relationship between different AWS services
-        and their current operational status. The colors indicate:
+                st.warning("No detailed chaos action data available.")
+        else:
+            st.info("No chaos actions have been performed yet.")
         
-        - 🟢 **Healthy**: Service is operating normally
-        - 🟠 **Degraded**: Service is experiencing issues but still functional
-        - 🔴 **Failed**: Service is not operational
+        # ------------------- Remediation Actions Impact -------------------
+        st.markdown("### Remediation Actions Effectiveness")
         
-        When a chaos event is applied, it affects specific services and may propagate to dependent services.
-        The remediation actions aim to restore the affected services to their healthy state.
-        """)
+        if remediation_df is not None and not remediation_df.empty:
+            # Group by description to get average effectiveness of each remediation type
+            if 'description' in remediation_df.columns and 'improvement' in remediation_df.columns:
+                # Extract the main remediation type from the description
+                remediation_df['remediation_type'] = remediation_df['description'].apply(
+                    lambda x: next((key for key in ["Scale", "Restart", "Failover", "Throttle", 
+                                                  "Rollback", "Provision", "Reconfigure", "Isolate"] if key in x), "Other")
+                )
+                
+                # Group by remediation type and compute average improvement score (effectiveness)
+                remediation_impact = remediation_df.groupby('remediation_type')['improvement'].mean().reset_index()
+                remediation_impact = remediation_impact.sort_values('improvement', ascending=False)
+                remediation_impact.columns = ['Remediation Action', 'Effectiveness Score']
+                
+                # Create a bar chart of remediation effectiveness
+                st.bar_chart(remediation_impact.set_index('Remediation Action'))
+                
+                # Add a table with more detailed information
+                st.write("**Remediation Actions Ranked by Effectiveness:**")
+                
+                # Add more metrics for analysis
+                detailed_remediation = remediation_df.groupby('remediation_type').agg({
+                    'improvement': ['mean', 'max', 'count'],
+                    'anomaly_before': 'mean', 
+                    'anomaly_after': 'mean'
+                }).reset_index()
+                
+                detailed_remediation.columns = ['Remediation Type', 'Avg Improvement', 'Max Improvement', 
+                                             'Count', 'Avg Anomaly Before', 'Avg Anomaly After']
+                detailed_remediation = detailed_remediation.sort_values('Avg Improvement', ascending=False)
+                
+                # Calculate effectiveness percentage
+                detailed_remediation['Effectiveness (%)'] = (detailed_remediation['Avg Improvement'] / 
+                                                         detailed_remediation['Avg Anomaly Before'] * 100)
+                
+                # Format for display
+                for col in ['Avg Improvement', 'Max Improvement', 'Avg Anomaly Before', 'Avg Anomaly After']:
+                    detailed_remediation[col] = detailed_remediation[col].apply(lambda x: f"{x:.4f}")
+                
+                detailed_remediation['Effectiveness (%)'] = detailed_remediation['Effectiveness (%)'].apply(lambda x: f"{x:.1f}%")
+                
+                # Reorder columns for better presentation
+                display_cols = ['Remediation Type', 'Count', 'Avg Improvement', 'Effectiveness (%)', 
+                              'Avg Anomaly Before', 'Avg Anomaly After']
+                st.table(detailed_remediation[display_cols])
+            else:
+                st.warning("No detailed remediation data available.")
+        else:
+            st.info("No remediation actions have been performed yet.")
+        
+        # ------------------- Correlation Analysis -------------------
+        st.markdown("### Correlation: Chaos Type vs Remediation Effectiveness")
+        
+        if remediation_df is not None and not remediation_df.empty and not chaos_df.empty:
+            # Attempt to match each remediation action with its preceding chaos action
+            # First, make sure we have the step information
+            if 'step' in remediation_df.columns and 'step' in chaos_df.columns:
+                # Create a mapping from chaos steps to action types
+                chaos_map = chaos_df.set_index('step')['action_type'].to_dict()
+                
+                # Add the corresponding chaos action to each remediation row
+                remediation_df['chaos_action'] = remediation_df['step'].map(chaos_map)
+                
+                # Group by chaos action and remediation type to see which pairs work best
+                if len(remediation_df) >= 3:  # Need at least a few points to make this meaningful
+                    correlation_df = remediation_df.groupby(['chaos_action', 'remediation_type'])['improvement'].mean().reset_index()
+                    correlation_df = correlation_df.sort_values('improvement', ascending=False)
+                    correlation_df.columns = ['Chaos Action', 'Remediation Type', 'Effectiveness']
+                    
+                    # Format for better display
+                    correlation_df['Effectiveness'] = correlation_df['Effectiveness'].apply(lambda x: f"{x:.4f}")
+                    
+                    st.write("**Most Effective Remediation Strategies by Chaos Type:**")
+                    st.table(correlation_df.head(10))  # Show top 10 most effective combinations
+                    
+                    # Create visual heatmap representation using a trick (since plotly isn't available)
+                    st.write("**Heat Map of Remediation Effectiveness:**")
+                    
+                    # Create a pivot table for the heatmap effect
+                    pivot_data = remediation_df.pivot_table(
+                        index='chaos_action', 
+                        columns='remediation_type', 
+                        values='improvement',
+                        aggfunc='mean'
+                    ).fillna(0)
+                    
+                    # Display the pivot table (as a simple version of a heatmap)
+                    st.dataframe(pivot_data.style.highlight_max(axis=1))
+                else:
+                    st.info("Not enough data points to create a meaningful correlation analysis.")
+            else:
+                st.warning("Missing step information for correlation analysis.")
+        else:
+            st.info("Need both chaos and remediation actions to create correlation analysis.")
+            
+    else:
+        # Simulation has not been run yet
+        st.warning("Run a chaos simulation to see impact analysis.")
+        
+        # Show placeholder
+        st.write("### Impact Analysis (Pre-Simulation)")
+        st.write("This page will analyze the impact of different chaos actions and the effectiveness of remediation strategies.")
+        st.write("After running a simulation, you'll see:")
+        st.markdown("- **Chaos Actions Impact**: Which chaos scenarios have the most severe impact on your system")
+        st.markdown("- **Remediation Effectiveness**: Which remediation strategies work best")
+        st.markdown("- **Correlation Analysis**: Which remediation actions work best for specific chaos types")
 
 def display_logs_analysis():
     from datetime import datetime, timedelta
