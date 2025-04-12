@@ -895,6 +895,9 @@ def display_chaos_simulation():
                         availability = random.uniform(0.6, 0.8)  # Partial impact
                     else:
                         availability = max(0.7, system_health - 0.1)  # Derived from system health
+                        
+                    # Make sure availability is always greater than 0
+                    availability = max(0.3, availability)
                 
                     # Record metrics
                     st.session_state.simulation_metrics['timestamps'].append(datetime.now())
@@ -1046,6 +1049,8 @@ def display_chaos_simulation():
                         
                         # Service availability improvements
                         availability_after = min(0.98, max(0.8, 1.0 - (anomaly_after * 0.5)))
+                        # Ensure it's always a positive value
+                        availability_after = max(0.5, availability_after)
                         
                         # Record metrics after remediation
                         st.session_state.simulation_metrics['timestamps'].append(datetime.now())
@@ -2347,9 +2352,11 @@ def display_impact_analysis():
                 # Extract the main action type from the description
                 chaos_df['action_type'] = chaos_df['description'].apply(
                     lambda x: next((key for key in ["CPU", "Memory", "Network", 
-                                                  "API", "Service", 
-                                                  "DNS", "Database", "Load balancer",
-                                                  "EC2", "Lambda", "S3"] if key.lower() in x.lower()), "Other")
+                                                  "API", "Service", "Instance", "Termination",
+                                                  "DNS", "Database", "Load balancer", 
+                                                  "EC2", "Lambda", "S3", "Route", "Disk", "Security",
+                                                  "RDS", "Throttling", "Latency", "Access", "Rule",
+                                                  "Concurrency", "Group", "Space"] if key.lower() in x.lower()), x.split()[0])
                 )
                 
                 # Group by action type and compute average anomaly score (impact)
@@ -2391,8 +2398,10 @@ def display_impact_analysis():
                 remediation_df['remediation_type'] = remediation_df['description'].apply(
                     lambda x: next((key for key in ["Scale", "Restart", "Failover", "Throttle", 
                                                   "Rollback", "Provision", "Reconfigure", "Isolate",
-                                                  "Restore", "Fix", "Increase", "Decrease", "Remove"] 
-                                  if key.lower() in x.lower()), "Other")
+                                                  "Restore", "Fix", "Increase", "Decrease", "Remove",
+                                                  "Balance", "Heal", "Auto", "Reset", "Clean", "Optimize",
+                                                  "Update", "Patch", "Recover"] 
+                                  if key.lower() in x.lower()), x.split()[0])
                 )
                 
                 # Group by remediation type and compute average improvement score (effectiveness)
