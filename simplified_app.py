@@ -587,136 +587,128 @@ def display_chaos_simulation():
                 chaos_df = df[df['phase'] == 'Chaos'].copy().reset_index(drop=True)
                 remediation_df = df[df['phase'] == 'Remediation'].copy().reset_index(drop=True)
                 
-                # System Status Metrics - separate charts for chaos and remediation
+                # System Status Metrics - single combined chart for chaos and remediation
                 with st.session_state.primary_metrics_chart.container():
                     st.subheader("System Status Metrics")
                     
-                    col1, col2 = st.columns(2)
+                    # Create a single dataframe for all system status metrics
+                    system_metrics = pd.DataFrame()
                     
-                    # Chaos phase system status metrics
-                    with col1:
-                        st.markdown("### Chaos Phase")
+                    # Add chaos phase metrics if available
+                    if not chaos_df.empty:
+                        # Create sequential indices to ensure proper time ordering
+                        chaos_indices = list(range(len(chaos_df)))
                         
-                        if not chaos_df.empty:
-                            # Extract system status metrics for chaos phase
-                            chaos_metrics = chaos_df[['anomaly_score', 'system_health']].rename(
-                                columns={
-                                    'anomaly_score': 'Anomaly Score',
-                                    'system_health': 'System Health'
-                                })
-                            st.line_chart(chaos_metrics, color=["#FF0000", "#FFA500"])
-                        else:
-                            st.info("No chaos phase data available yet.")
+                        # Add anomaly score and system health for chaos phase
+                        chaos_anomaly = pd.Series(chaos_df['anomaly_score'].values, index=chaos_indices, name='Chaos Anomaly')
+                        chaos_health = pd.Series(chaos_df['system_health'].values, index=chaos_indices, name='Chaos Health')
+                        
+                        # Add to the combined dataframe
+                        system_metrics = pd.concat([system_metrics, chaos_anomaly, chaos_health], axis=1)
                     
-                    # Remediation phase system status metrics
-                    with col2:
-                        st.markdown("### Remediation Phase")
+                    # Add remediation phase metrics if available
+                    if not remediation_df.empty:
+                        # Create sequential indices starting after chaos phase
+                        start_idx = len(chaos_df) if not chaos_df.empty else 0
+                        remediation_indices = list(range(start_idx, start_idx + len(remediation_df)))
                         
-                        if not remediation_df.empty:
-                            # Extract system status metrics for remediation phase
-                            remediation_metrics = remediation_df[['anomaly_score', 'system_health']].rename(
-                                columns={
-                                    'anomaly_score': 'Anomaly Score',
-                                    'system_health': 'System Health'
-                                })
-                            st.line_chart(remediation_metrics, color=["#008000", "#0000FF"])
-                        else:
-                            st.info("No remediation phase data available yet.")
+                        # Add anomaly score and system health for remediation phase
+                        remediation_anomaly = pd.Series(remediation_df['anomaly_score'].values, index=remediation_indices, name='Remediation Anomaly')
+                        remediation_health = pd.Series(remediation_df['system_health'].values, index=remediation_indices, name='Remediation Health')
+                        
+                        # Add to the combined dataframe
+                        system_metrics = pd.concat([system_metrics, remediation_anomaly, remediation_health], axis=1)
+                    
+                    # Display the combined system metrics chart
+                    if not system_metrics.empty:
+                        # Use custom colors for better distinction between phases and metrics
+                        st.line_chart(system_metrics)
+                        
+                        st.caption("""
+                        **System Status Legend:**
+                        - **Chaos Anomaly** (red): Anomaly scores during chaos injection phase
+                        - **Chaos Health** (orange): System health during chaos injection phase
+                        - **Remediation Anomaly** (green): Anomaly scores during remediation phase
+                        - **Remediation Health** (blue): System health during remediation phase
+                        """)
+                    else:
+                        st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
-                # Infrastructure metrics - separate charts for chaos and remediation
+                # Infrastructure metrics - single combined chart
                 with st.session_state.infra_metrics_chart.container():
                     st.subheader("Infrastructure Metrics")
                     
-                    col1, col2 = st.columns(2)
-                    
-                    # Define the infrastructure metrics to show
+                    # Define the primary infrastructure metrics to show
                     metrics = {
-                        'cpu_utilization': 'CPU Utilization',
-                        'memory_usage': 'Memory Usage', 
-                        'network_latency': 'Network Latency',
-                        'api_error_rate': 'API Error Rate',
-                        'service_availability': 'Service Availability'
+                        'cpu_utilization': 'CPU',
+                        'memory_usage': 'Memory', 
+                        'network_latency': 'Network',
+                        'api_error_rate': 'API',
+                        'service_availability': 'Service'
                     }
                     
-                    # Chaos phase infrastructure metrics
-                    with col1:
-                        st.markdown("### Chaos Phase")
-                        
-                        if not chaos_df.empty:
-                            # Create dataframe with all metrics for chaos phase
-                            chaos_infra = pd.DataFrame()
-                            for metric_key, display_name in metrics.items():
-                                if metric_key in chaos_df.columns:
-                                    chaos_infra[display_name] = chaos_df[metric_key]
-                            
-                            # Display the chaos infrastructure chart with custom colors
-                            if not chaos_infra.empty:
-                                # Scale the metrics to be in similar ranges for better visualization
-                                if 'Network Latency' in chaos_infra.columns:
-                                    # Scale down network latency which can be much higher than other metrics
-                                    chaos_infra['Network Latency'] = chaos_infra['Network Latency'] / 10
-                                
-                                if 'API Error Rate' in chaos_infra.columns:
-                                    # Scale up API error rate which is typically < 1
-                                    chaos_infra['API Error Rate'] = chaos_infra['API Error Rate'] * 100
-                                
-                                # Define colors for each metric type for better visual distinction
-                                colors = [
-                                    "#e41a1c",  # red for CPU
-                                    "#377eb8",  # blue for Memory
-                                    "#4daf4a",  # green for Network
-                                    "#ff7f00",  # orange for API
-                                    "#984ea3"   # purple for Service Availability
-                                ]
-                                
-                                st.line_chart(chaos_infra)
-                                
-                                # Add a note explaining the scaling
-                                st.caption("Note: Network Latency divided by 10 and API Error Rate multiplied by 100 for scale compatibility")
-                            else:
-                                st.info("No infrastructure data for chaos phase.")
-                        else:
-                            st.info("No chaos phase data available yet.")
+                    # Create a single dataframe for key infrastructure metrics
+                    # Focus on the most important metrics for better readability
+                    infra_metrics = pd.DataFrame()
                     
-                    # Remediation phase infrastructure metrics
-                    with col2:
-                        st.markdown("### Remediation Phase")
+                    # Add chaos and remediation metrics
+                    if not chaos_df.empty:
+                        # Create sequential indices to ensure proper time ordering
+                        chaos_indices = list(range(len(chaos_df)))
                         
-                        if not remediation_df.empty:
-                            # Create dataframe with all metrics for remediation phase
-                            remediation_infra = pd.DataFrame()
-                            for metric_key, display_name in metrics.items():
-                                if metric_key in remediation_df.columns:
-                                    remediation_infra[display_name] = remediation_df[metric_key]
-                            
-                            # Display the remediation infrastructure chart with custom colors
-                            if not remediation_infra.empty:
-                                # Scale the metrics to be in similar ranges for better visualization
-                                if 'Network Latency' in remediation_infra.columns:
-                                    # Scale down network latency which can be much higher than other metrics
-                                    remediation_infra['Network Latency'] = remediation_infra['Network Latency'] / 10
+                        # Scale and prepare metrics before adding
+                        for metric_key, short_name in metrics.items():
+                            if metric_key in chaos_df.columns:
+                                values = chaos_df[metric_key].values
                                 
-                                if 'API Error Rate' in remediation_infra.columns:
-                                    # Scale up API error rate which is typically < 1
-                                    remediation_infra['API Error Rate'] = remediation_infra['API Error Rate'] * 100
+                                # Apply scaling for better visualization
+                                if metric_key == 'network_latency':
+                                    values = values / 10  # Scale down latency
+                                elif metric_key == 'api_error_rate':
+                                    values = values * 100  # Scale up error rates
                                 
-                                # Define colors for each metric type for better visual distinction
-                                colors = [
-                                    "#e41a1c",  # red for CPU
-                                    "#377eb8",  # blue for Memory
-                                    "#4daf4a",  # green for Network
-                                    "#ff7f00",  # orange for API
-                                    "#984ea3"   # purple for Service Availability
-                                ]
+                                # Add the series with chaos prefix
+                                metric_series = pd.Series(values, index=chaos_indices, name=f'Chaos {short_name}')
+                                infra_metrics = pd.concat([infra_metrics, metric_series], axis=1)
+                    
+                    if not remediation_df.empty:
+                        # Create sequential indices starting after chaos phase
+                        start_idx = len(chaos_df) if not chaos_df.empty else 0
+                        remediation_indices = list(range(start_idx, start_idx + len(remediation_df)))
+                        
+                        # Scale and prepare metrics before adding
+                        for metric_key, short_name in metrics.items():
+                            if metric_key in remediation_df.columns:
+                                values = remediation_df[metric_key].values
                                 
-                                st.line_chart(remediation_infra)
+                                # Apply scaling for better visualization
+                                if metric_key == 'network_latency':
+                                    values = values / 10  # Scale down latency
+                                elif metric_key == 'api_error_rate':
+                                    values = values * 100  # Scale up error rates
                                 
-                                # Add a note explaining the scaling
-                                st.caption("Note: Network Latency divided by 10 and API Error Rate multiplied by 100 for scale compatibility")
-                            else:
-                                st.info("No infrastructure data for remediation phase.")
-                        else:
-                            st.info("No remediation phase data available yet.")
+                                # Add the series with remediation prefix
+                                metric_series = pd.Series(values, index=remediation_indices, name=f'Remediation {short_name}')
+                                infra_metrics = pd.concat([infra_metrics, metric_series], axis=1)
+                    
+                    # Display the combined infrastructure metrics chart
+                    if not infra_metrics.empty:
+                        st.line_chart(infra_metrics)
+                        
+                        # Add explanatory notes
+                        st.caption("""
+                        **Infrastructure Metrics Legend:**
+                        - **CPU**: CPU utilization %
+                        - **Memory**: Memory usage %
+                        - **Network**: Network latency (ms/10 for scale)
+                        - **API**: API error rate (× 100 for scale)
+                        - **Service**: Service availability %
+                        
+                        Chaos metrics show the impact of failure injection, while remediation metrics show recovery patterns.
+                        Network latency values are divided by 10 and API error rates are multiplied by 100 for better visualization.
+                        """)
+                    else:
+                        st.info("No infrastructure metrics data available yet. Run a simulation to generate data.")
                 
                 # Get the most recent action details
                 latest_idx = len(df) - 1
