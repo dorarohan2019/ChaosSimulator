@@ -1236,21 +1236,28 @@ def display_chaos_simulation():
                             chaos_health = pd.DataFrame(index=range(len(df)))
                             remediation_health = pd.DataFrame(index=range(len(df)))
                             
-                            # Fill in data for each phase
+                            # Fill in data for each phase using the same approach as for anomaly score
+                            chaos_indices = []
+                            remediation_indices = []
+                            
                             for i, row in df.iterrows():
                                 if row['phase'] == 'Chaos':
+                                    chaos_indices.append(i)
                                     chaos_health.at[i, 'System Health (Chaos)'] = row['system_health']
                                 elif row['phase'] == 'Remediation':
+                                    remediation_indices.append(i)
                                     remediation_health.at[i, 'System Health (Remediation)'] = row['system_health']
                             
                             # Plot the system health charts with custom colors
-                            if not chaos_health.empty and not chaos_health['System Health (Chaos)'].isnull().all():
+                            if not chaos_health.empty and len(chaos_indices) > 0:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(chaos_health, height=150)
+                                st.line_chart(chaos_health.iloc[chaos_indices], height=150)
                             
-                            if not remediation_health.empty and not remediation_health['System Health (Remediation)'].isnull().all():
+                            if not remediation_health.empty and len(remediation_indices) > 0:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(remediation_health, height=150)
+                                clean_remediation_health = remediation_health.dropna()
+                                if not clean_remediation_health.empty:
+                                    st.line_chart(clean_remediation_health, height=150)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
