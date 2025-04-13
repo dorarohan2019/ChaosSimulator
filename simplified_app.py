@@ -1194,18 +1194,6 @@ def display_chaos_simulation():
                     
                     # Display the unified system metrics chart with different colors for phases
                     if not system_metrics.empty:
-                        # Create custom HTML to explain the different metrics with proper color coding
-                        st.markdown("""
-                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #4e4e6e;">
-                        <h5 style="margin-top: 0; color: #ff9d5c;">System Status Metrics:</h5>
-                        <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
-                        <li><b style="color: #ff3b30;">Anomaly Score (Chaos)</b>: Severity of security issues during attack simulation</li>
-                        <li><b style="color: #ffcc00;">Anomaly Score (Remediation)</b>: Security issues during automatic remediation</li>
-                        <li><b style="color: #00a651;">System Health (Chaos)</b>: Overall system stability during attack</li>
-                        <li><b style="color: #ff69b4;">System Health (Remediation)</b>: System recovery during remediation</li>
-                        </ul>
-                        </div>
-                        """, unsafe_allow_html=True)
                         
                         # Separate data frames for each metric and phase
                         # This is necessary to apply different colors to each phase
@@ -1308,27 +1296,7 @@ def display_chaos_simulation():
                         # Use the chart directly without axis labels
                         st.line_chart(infra_metrics)
                         
-                        # Create a compact legend with smaller font size, showing chaos vs remediation colors
-                        st.markdown("""
-                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #4e4e6e;">
-                        <h5 style="margin-top: 0; margin-bottom: 5px; color: #ff9d5c; font-size: 0.9em;">Infrastructure Security Metrics</h5>
-                        <div style="display: flex; margin-bottom: 8px;">
-                          <div style="width: 50%; border-right: 1px solid #555;">
-                            <p style="margin: 0; font-weight: bold; color: #ff3b30; font-size: 0.9em;">Chaos Phase Metrics</p>
-                          </div>
-                          <div style="width: 50%; padding-left: 10px;">
-                            <p style="margin: 0; font-weight: bold; color: #ff9900; font-size: 0.9em;">Remediation Phase Metrics</p>
-                          </div>
-                        </div>
-                        <ul style="margin-bottom: 0; padding-left: 15px; color: #e0e0e0; font-size: 0.85em;">
-                        <li><b style="color: #ff3b30;">CPU Utilization (%)</b>: Processing load (brute force, DDoS)</li>
-                        <li><b style="color: #ff9900;">Memory Usage (%)</b>: Memory consumption (buffer overflows, leaks)</li>
-                        <li><b style="color: #00a651;">Network Latency (ms)</b>: Network delays (traffic manipulation)</li>
-                        <li><b style="color: #ff9cce;">Service Availability (%)</b>: Uptime impact (breaches)</li>
-                        <li><b style="color: #429bf5;">API Error Rate (×100)</b>: Failed API calls (vulnerabilities)</li>
-                        </ul>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        # Display the chart without legend
                         
                         # Add security-focused color point indicators for major metric spikes
                         col1, col2 = st.columns(2)
