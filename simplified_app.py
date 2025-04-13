@@ -1206,58 +1206,87 @@ def display_chaos_simulation():
                             chaos_anomaly = pd.DataFrame(index=range(len(df)))
                             remediation_anomaly = pd.DataFrame(index=range(len(df)))
                             
-                            # Fill in data for each phase more explicitly, preserving indices
+                            # Completely rebuild with proper phase separation
+                            # Create new dataframes with sequential indices
                             chaos_indices = []
                             remediation_indices = []
                             
+                            # First identify all rows by phase
                             for i, row in df.iterrows():
                                 if row['phase'] == 'Chaos':
                                     chaos_indices.append(i)
-                                    chaos_anomaly.at[i, 'Anomaly Score (Chaos)'] = row['anomaly_score']
                                 elif row['phase'] == 'Remediation':
                                     remediation_indices.append(i)
-                                    remediation_anomaly.at[i, 'Anomaly Score (Remediation)'] = row['anomaly_score']
                             
-                            # Plot the anomaly score charts with custom colors
-                            if not chaos_anomaly.empty and len(chaos_indices) > 0:
+                            # Create proper sequential data for each phase
+                            if chaos_indices:
+                                chaos_data = []
+                                for i in chaos_indices:
+                                    chaos_data.append(df.iloc[i]['anomaly_score'])
+                                chaos_anomaly = pd.DataFrame({
+                                    'Anomaly Score (Chaos)': chaos_data
+                                })
+                            
+                            if remediation_indices:
+                                remediation_data = []
+                                for i in remediation_indices:
+                                    remediation_data.append(df.iloc[i]['anomaly_score'])
+                                remediation_anomaly = pd.DataFrame({
+                                    'Anomaly Score (Remediation)': remediation_data
+                                })
+                            
+                            # Plot the anomaly score charts with custom colors and sequential indices
+                            if not chaos_anomaly.empty:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(chaos_anomaly.iloc[chaos_indices], height=150)
+                                st.line_chart(chaos_anomaly, height=150)
                             
-                            if not remediation_anomaly.empty and len(remediation_indices) > 0:
+                            if not remediation_anomaly.empty:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                clean_remediation_df = remediation_anomaly.dropna()
-                                if not clean_remediation_df.empty:
-                                    st.line_chart(clean_remediation_df, height=150)
+                                st.line_chart(remediation_anomaly, height=150)
                         
                         with col2:
                             st.subheader("System Health")
                             
-                            # Create separate dataframes for Chaos and Remediation phases
-                            chaos_health = pd.DataFrame(index=range(len(df)))
-                            remediation_health = pd.DataFrame(index=range(len(df)))
-                            
-                            # Fill in data for each phase using the same approach as for anomaly score
+                            # Create separate dataframes with proper sequential data for each phase
                             chaos_indices = []
                             remediation_indices = []
                             
+                            # First identify all rows by phase
                             for i, row in df.iterrows():
                                 if row['phase'] == 'Chaos':
                                     chaos_indices.append(i)
-                                    chaos_health.at[i, 'System Health (Chaos)'] = row['system_health']
                                 elif row['phase'] == 'Remediation':
                                     remediation_indices.append(i)
-                                    remediation_health.at[i, 'System Health (Remediation)'] = row['system_health']
                             
-                            # Plot the system health charts with custom colors
-                            if not chaos_health.empty and len(chaos_indices) > 0:
+                            # Create proper sequential data for each phase
+                            if chaos_indices:
+                                chaos_data = []
+                                for i in chaos_indices:
+                                    chaos_data.append(df.iloc[i]['system_health'])
+                                chaos_health = pd.DataFrame({
+                                    'System Health (Chaos)': chaos_data
+                                })
+                            else:
+                                chaos_health = pd.DataFrame()
+                            
+                            if remediation_indices:
+                                remediation_data = []
+                                for i in remediation_indices:
+                                    remediation_data.append(df.iloc[i]['system_health'])
+                                remediation_health = pd.DataFrame({
+                                    'System Health (Remediation)': remediation_data
+                                })
+                            else:
+                                remediation_health = pd.DataFrame()
+                            
+                            # Plot the system health charts with custom colors and sequential indices
+                            if not chaos_health.empty:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(chaos_health.iloc[chaos_indices], height=150)
+                                st.line_chart(chaos_health, height=150)
                             
-                            if not remediation_health.empty and len(remediation_indices) > 0:
+                            if not remediation_health.empty:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                clean_remediation_health = remediation_health.dropna()
-                                if not clean_remediation_health.empty:
-                                    st.line_chart(clean_remediation_health, height=150)
+                                st.line_chart(remediation_health, height=150)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
@@ -1622,14 +1651,16 @@ def display_chaos_simulation():
                     remediation_type = next((key for key in remediation_effectiveness if key in remediation_description), None)
                     
                     # Calculate improvement based on remediation effectiveness
+                    # Critical Fix: Always ensure remediation DECREASES anomaly score
                     if remediation_type:
                         effectiveness = remediation_effectiveness[remediation_type]
                         # More severe problems show more dramatic improvements
-                        improvement_factor = effectiveness * (0.5 + anomaly_score/2)
-                        anomaly_after = max(0.05, anomaly_score * (1 - improvement_factor))
+                        improvement_factor = min(0.9, effectiveness * (0.5 + anomaly_score/2))  # Cap at 90% improvement
+                        # Force improvement - anomaly score must decrease
+                        anomaly_after = max(0.05, min(anomaly_score * 0.95, anomaly_score * (1 - improvement_factor)))
                     else:
-                        # Default improvement if no specific match
-                        anomaly_after = max(0.05, anomaly_score - (anomaly_score * 0.4))
+                        # Default improvement if no specific match - guarantees at least 25% reduction
+                        anomaly_after = max(0.05, min(anomaly_score * 0.75, anomaly_score - (anomaly_score * 0.4)))
                 
                                         # Smoother system health calculation
                         system_health_after = min(0.95, max(0.2, 1.0 - anomaly_after))
