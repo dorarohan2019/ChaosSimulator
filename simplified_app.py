@@ -13,7 +13,7 @@ import requests  # For Slack API fallback if slack_sdk is not available
 # Define Slack constants
 SLACK_CHANNEL_ID = "C08LJRT9VM3"  # Channel ID for posting messages
 SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name for reading history
-SLACK_DEFAULT_TOKEN = "xoxb-fake-token-for-simulation-only"  # Default token for simulation mode
+SLACK_DEFAULT_TOKEN = "xoxb-8693650061862-8686339764119-xjW7OsW6q4r9jB2DL5ZsZp8b"  # Real token for Slack integration
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
 # Try to import Slack SDK, but provide fallback if not available
@@ -498,8 +498,8 @@ def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_ID):
         logger.warning("Missing slack token or timestamp. Skipping approval check.")
         return None
     
-    # Handle simulation mode with fake token
-    if "fake-token" in slack_token:
+    # Only use simulation mode if explicitly enabled
+    if False:  # Disable simulation mode to use real Slack integration
         logger.info("Using simulation mode for Slack approval check")
         
         # Use the check count from session state to simulate a delay before approval
@@ -743,10 +743,10 @@ def display_chaos_simulation():
                 with st.spinner("Sending security approval request to Slack..."):
                     message_ts = request_approval(st.session_state.slack_token)
                     
-                    # For simulation purposes, generate a fake timestamp if we're in simulation mode
-                    if not message_ts and "fake-token" in st.session_state.slack_token:
+                    # No need for simulation mode with a real token, but add a fallback to avoid errors
+                    if not message_ts:
                         message_ts = str(time.time())
-                        logger.info("Using simulation mode with fake message timestamp")
+                        logger.info("Using fallback timestamp due to Slack message send failure")
                     
                     if message_ts:
                         st.session_state.approval_message_ts = message_ts
