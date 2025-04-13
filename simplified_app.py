@@ -621,76 +621,295 @@ def provision_localstack_resources():
 def display_dashboard():
     st.header("Infrastructure Dashboard")
     
-    # System status cards
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.info("**LocalStack Status**: Running")
-        
-    with col2:
-        model_status = st.session_state.model_statuses['anomaly_model']
-        if model_status == 'Not Loaded':
-            st.info(f"**Anomaly Model**: {model_status}")
-        else:
-            st.success(f"**Anomaly Model**: {model_status}")
-        
-    with col3:
-        agent_status = st.session_state.model_statuses['chaos_agent']
-        if agent_status == 'Not Trained':
-            st.info(f"**Chaos Agent**: {agent_status}")
-        else:
-            st.success(f"**Chaos Agent**: {agent_status}")
-        
-    with col4:
-        agent_status = st.session_state.model_statuses['remediation_agent']
-        if agent_status == 'Not Trained':
-            st.info(f"**Remediation Agent**: {agent_status}")
-        else:
-            st.success(f"**Remediation Agent**: {agent_status}")
-    
     # Generate current state if none exists
     if st.session_state.current_state is None:
         collector = MockStateCollector()
         state = collector.collect_state(scenario='normal')
         st.session_state.current_state = state
     
-    # Service health gauges
-    st.subheader("Service Health")
-    plot_service_health(st.session_state.current_state)
+    # Add refresh button in a clean format
+    col_refresh = st.columns([3, 1])
     
-    # Add refresh button
-    if st.button("Refresh Metrics"):
-        collector = MockStateCollector()
-        state = collector.collect_state()
-        st.session_state.current_state = state
+    with col_refresh[1]:
+        if st.button("🔄 Refresh Metrics", help="Update all metrics with latest data"):
+            collector = MockStateCollector()
+            state = collector.collect_state()
+            st.session_state.current_state = state
+            
+            # Update metrics history
+            for key in st.session_state.metrics_history:
+                if key in state:
+                    st.session_state.metrics_history[key].append(state[key])
+                elif key == 'anomaly_score':
+                    # Generate sample anomaly score
+                    import random
+                    st.session_state.metrics_history[key].append(random.uniform(0.01, 0.2))
+            
+            st.rerun()
+            
+    with col_refresh[0]:
+        st.markdown("### System State Overview")
         
-        # Update metrics history
-        for key in st.session_state.metrics_history:
-            if key in state:
-                st.session_state.metrics_history[key].append(state[key])
-            elif key == 'anomaly_score':
-                # Generate sample anomaly score
-                import random
-                st.session_state.metrics_history[key].append(random.uniform(0.01, 0.2))
+    # Card styling
+    card_style = """
+    <style>
+    .metric-card {
+        background-color: rgba(247, 248, 249, 0.8);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .metric-card.alert {
+        background-color: rgba(255, 240, 240, 0.8);
+        border-left: 3px solid #f75f5f;
+    }
+    .metric-icon {
+        color: #555;
+        font-size: 1.5rem;
+        margin-right: 10px;
+        vertical-align: middle;
+    }
+    .metric-title {
+        color: #555;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin: 0;
+    }
+    .metric-value {
+        color: #111;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 5px 0;
+    }
+    .metric-details {
+        color: #666;
+        font-size: 0.8rem;
+        margin: 0;
+    }
+    .anomaly-section {
+        background-color: rgba(247, 248, 249, 0.8);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0 20px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .anomaly-low {
+        color: #28a745;
+        font-weight: bold;
+        background-color: rgba(40, 167, 69, 0.1);
+        border-radius: 12px;
+        padding: 2px 8px;
+    }
+    .anomaly-medium {
+        color: #ffc107;
+        font-weight: bold;
+        background-color: rgba(255, 193, 7, 0.1);
+        border-radius: 12px;
+        padding: 2px 8px;
+    }
+    .anomaly-high {
+        color: #dc3545;
+        font-weight: bold;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-radius: 12px;
+        padding: 2px 8px;
+    }
+    .progress-container {
+        width: 100%;
+        background-color: #e9ecef;
+        border-radius: 5px;
+    }
+    .progress-bar {
+        height: 10px;
+        background-color: #28a745;
+        border-radius: 5px;
+    }
+    </style>
+    """
+    st.markdown(card_style, unsafe_allow_html=True)
+    
+    # Get the latest metrics
+    metrics = st.session_state.current_state
+    
+    # Compute anomaly score - this would normally come from the model
+    import random
+    anomaly_score = metrics.get('security_findings', 0) * 0.01 + metrics.get('failed_logins', 0) * 0.01
+    if anomaly_score == 0:
+        anomaly_score = random.uniform(0.01, 0.1)  # Sample value if no metrics yet
+    
+    # Determine anomaly level
+    anomaly_level = "LOW"
+    anomaly_class = "anomaly-low"
+    if anomaly_score > 0.3:
+        anomaly_level = "HIGH"
+        anomaly_class = "anomaly-high"
+    elif anomaly_score > 0.15:
+        anomaly_level = "MEDIUM"
+        anomaly_class = "anomaly-medium"
+    
+    # Row 1: EC2, RDS, Lambda, Storage
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        ec2_running = metrics.get('ec2_running', 5)
+        ec2_count = metrics.get('ec2_count', 5)
+        ec2_cpu = metrics.get('ec2_cpu_avg', 30.0)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🖥️ EC2 Instances</p>
+            <h2 class="metric-value">{ec2_running}/{ec2_count}</h2>
+            <p class="metric-details">CPU: {ec2_cpu:.1f}%</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        st.rerun()
+    with col2:
+        rds_available = metrics.get('rds_available', 2)
+        rds_count = metrics.get('rds_count', 2)
+        rds_cpu = metrics.get('rds_cpu', 40.0)
+        rds_connections = metrics.get('rds_connections', 100)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🛢️ RDS Databases</p>
+            <h2 class="metric-value">{rds_available}/{rds_count}</h2>
+            <p class="metric-details">CPU: {rds_cpu:.1f}% | Connections: {rds_connections}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        lambda_count = metrics.get('lambda_count', 3)
+        lambda_invocations = metrics.get('lambda_invocations', 250)
+        lambda_errors = metrics.get('lambda_errors', 2)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">λ Lambda Functions</p>
+            <h2 class="metric-value">{lambda_count}</h2>
+            <p class="metric-details">Invocations: {lambda_invocations} | Errors: {lambda_errors}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col4:
+        s3_bucket_count = metrics.get('s3_bucket_count', 10)
+        s3_object_count = metrics.get('s3_object_count', 3000)
+        s3_total_size = metrics.get('s3_total_size', 3.0)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">📦 Storage</p>
+            <h2 class="metric-value">{s3_bucket_count} Buckets</h2>
+            <p class="metric-details">Objects: {s3_object_count/1000:.1f}K | Size: {s3_total_size:.1f}GB</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Live metrics chart
-    st.subheader("Live Metrics")
+    # Row 2: Load Balancer, Network, SQS, Security
+    col1, col2, col3, col4 = st.columns(4)
     
-    # Convert deques to lists for plotting
-    history_dict = {k: list(v) for k, v in st.session_state.metrics_history.items()}
-    if any(len(v) > 0 for v in history_dict.values()):
-        st.write("**X-axis:** Time Intervals (most recent data points on right)")
-        st.write("**Y-axis:** Real-time Security Metrics (CPU, Memory, Network, Errors)")
-        st.line_chart(history_dict)
-    else:
-        st.info("No metrics data available yet. Click 'Refresh Metrics' to collect data.")
+    with col1:
+        elb_requests = metrics.get('elb_requests', 500)
+        elb_latency = metrics.get('elb_latency', 0.1)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">⚖️ Load Balancer</p>
+            <h2 class="metric-value">{elb_requests}</h2>
+            <p class="metric-details">Latency: {elb_latency:.2f}s</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        network_in = metrics.get('network_in', 2.0)
+        network_out = metrics.get('network_out', 3.0)
+        packet_loss = metrics.get('packet_loss_percent', 0.5)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🌐 Network</p>
+            <h2 class="metric-value">{network_in:.1f}M/s in</h2>
+            <p class="metric-details">Out: {network_out:.1f}M/s | Loss: {packet_loss}%</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        sqs_queue_count = metrics.get('sqs_queue_count', 2)
+        sqs_message_count = metrics.get('sqs_message_count', 100)
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">📨 SQS Queues</p>
+            <h2 class="metric-value">{sqs_queue_count}</h2>
+            <p class="metric-details">Messages: {sqs_message_count}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col4:
+        security_findings = metrics.get('security_findings', 2)
+        failed_logins = metrics.get('failed_logins', 5)
+        vulnerability_count = metrics.get('vulnerability_count', 1)
+        
+        # Add alert styling if there are security findings
+        security_class = "metric-card alert" if security_findings > 0 else "metric-card"
+        
+        st.markdown(f"""
+        <div class="{security_class}">
+            <p class="metric-title">🔒 Security</p>
+            <h2 class="metric-value">{security_findings} Findings</h2>
+            <p class="metric-details">Failed Logins: {failed_logins} | Vulnerabilities: {vulnerability_count}</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Raw metrics
-    with st.expander("Current Metrics"):
-        if st.session_state.current_state:
-            st.json(st.session_state.current_state)
+    # Anomaly score section
+    st.markdown(f"""
+    <div class="anomaly-section">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <p style="margin: 0; display: flex; align-items: center;">
+                    <span style="color: #28a745;">⚠️</span> 
+                    <span style="margin-left: 8px; font-weight: 500;">Anomaly Score: {anomaly_score:.3f}</span>
+                    <span style="margin-left: 10px;" class="{anomaly_class}">{anomaly_level}</span>
+                </p>
+            </div>
+        </div>
+        <div class="progress-container" style="margin-top: 10px;">
+            <div class="progress-bar" style="width: {min(anomaly_score * 100, 100)}%; background-color: {'#28a745' if anomaly_score < 0.15 else '#ffc107' if anomaly_score < 0.3 else '#dc3545'};"></div>
+        </div>
+        <p style="margin-top: 8px; color: #666; font-size: 0.85rem;">
+            System operating within normal parameters.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # System Status Cards for model status
+    st.markdown("### Model & Agent Status")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        model_status = st.session_state.model_statuses['anomaly_model']
+        status_color = "#28a745" if model_status == 'Loaded' else "#6c757d"
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🔍 Anomaly Detection Model</p>
+            <h2 class="metric-value" style="color: {status_color};">{model_status}</h2>
+            <p class="metric-details">Trained on infrastructure security metrics</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col2:
+        agent_status = st.session_state.model_statuses['chaos_agent']
+        status_color = "#28a745" if agent_status == 'Trained' else "#6c757d"
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🧪 Chaos Agent</p>
+            <h2 class="metric-value" style="color: {status_color};">{agent_status}</h2>
+            <p class="metric-details">Creates security vulnerabilities for testing</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col3:
+        agent_status = st.session_state.model_statuses['remediation_agent']
+        status_color = "#28a745" if agent_status == 'Trained' else "#6c757d"
+        st.markdown(f"""
+        <div class="metric-card">
+            <p class="metric-title">🛡️ Remediation Agent</p>
+            <h2 class="metric-value" style="color: {status_color};">{agent_status}</h2>
+            <p class="metric-details">Automatically fixes security vulnerabilities</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Simulation orchestration page
 def display_chaos_simulation():
