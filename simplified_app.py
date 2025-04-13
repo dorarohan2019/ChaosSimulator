@@ -1194,17 +1194,7 @@ def display_chaos_simulation():
                     
                     # Display the unified system metrics chart with different colors for phases
                     if not system_metrics.empty:
-                        # Create a custom Plotly chart with specific colors for each series
-                        import plotly.graph_objects as go
-                        
-                        # Find the index where remediation begins
-                        remediation_start_idx = None
-                        for i, phase in enumerate(df['phase']):
-                            if phase == 'Remediation' and (i == 0 or df['phase'].iloc[i-1] != 'Remediation'):
-                                remediation_start_idx = i
-                                break
-                                
-                        # Create legend with explicit colors
+                        # Create custom HTML to explain the different metrics with proper color coding
                         st.markdown("""
                         <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #4e4e6e;">
                         <h5 style="margin-top: 0; color: #ff9d5c;">System Status Metrics:</h5>
@@ -1217,68 +1207,55 @@ def display_chaos_simulation():
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Separate data by phase
-                        fig = go.Figure()
+                        # Separate data frames for each metric and phase
+                        # This is necessary to apply different colors to each phase
+                        col1, col2 = st.columns(2)
                         
-                        # Get indices for each phase
-                        chaos_indices = df[df['phase'] == 'Chaos'].index.tolist()
-                        remediation_indices = df[df['phase'] == 'Remediation'].index.tolist()
+                        with col1:
+                            st.subheader("Anomaly Score")
+                            
+                            # Create separate dataframes for Chaos and Remediation phases
+                            chaos_anomaly = pd.DataFrame(index=range(len(df)))
+                            remediation_anomaly = pd.DataFrame(index=range(len(df)))
+                            
+                            # Fill in data for each phase
+                            for i, row in df.iterrows():
+                                if row['phase'] == 'Chaos':
+                                    chaos_anomaly.at[i, 'Anomaly Score (Chaos)'] = row['anomaly_score']
+                                elif row['phase'] == 'Remediation':
+                                    remediation_anomaly.at[i, 'Anomaly Score (Remediation)'] = row['anomaly_score']
+                            
+                            # Plot the anomaly score charts with custom colors
+                            if not chaos_anomaly.empty and not chaos_anomaly['Anomaly Score (Chaos)'].isnull().all():
+                                st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
+                                st.line_chart(chaos_anomaly, height=150)
+                            
+                            if not remediation_anomaly.empty and not remediation_anomaly['Anomaly Score (Remediation)'].isnull().all():
+                                st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
+                                st.line_chart(remediation_anomaly, height=150)
                         
-                        # Add traces for Chaos phase with red and green
-                        if chaos_indices:
-                            # Add Anomaly Score for Chaos phase - RED color
-                            fig.add_trace(go.Scatter(
-                                x=chaos_indices,
-                                y=df.loc[chaos_indices, 'anomaly_score'],
-                                mode='lines+markers',
-                                name='Anomaly Score (Chaos)',
-                                line=dict(color='#ff3b30', width=2),
-                                marker=dict(size=8)
-                            ))
+                        with col2:
+                            st.subheader("System Health")
                             
-                            # Add System Health for Chaos phase - GREEN color
-                            fig.add_trace(go.Scatter(
-                                x=chaos_indices,
-                                y=df.loc[chaos_indices, 'system_health'],
-                                mode='lines+markers',
-                                name='System Health (Chaos)',
-                                line=dict(color='#00a651', width=2),
-                                marker=dict(size=8)
-                            ))
+                            # Create separate dataframes for Chaos and Remediation phases
+                            chaos_health = pd.DataFrame(index=range(len(df)))
+                            remediation_health = pd.DataFrame(index=range(len(df)))
                             
-                        # Add traces for Remediation phase with yellow and pink
-                        if remediation_indices:
-                            # Add Anomaly Score for Remediation phase - YELLOW color
-                            fig.add_trace(go.Scatter(
-                                x=remediation_indices,
-                                y=df.loc[remediation_indices, 'anomaly_score'],
-                                mode='lines+markers',
-                                name='Anomaly Score (Remediation)',
-                                line=dict(color='#ffcc00', width=2),
-                                marker=dict(size=8)
-                            ))
+                            # Fill in data for each phase
+                            for i, row in df.iterrows():
+                                if row['phase'] == 'Chaos':
+                                    chaos_health.at[i, 'System Health (Chaos)'] = row['system_health']
+                                elif row['phase'] == 'Remediation':
+                                    remediation_health.at[i, 'System Health (Remediation)'] = row['system_health']
                             
-                            # Add System Health for Remediation phase - PINK color
-                            fig.add_trace(go.Scatter(
-                                x=remediation_indices,
-                                y=df.loc[remediation_indices, 'system_health'],
-                                mode='lines+markers',
-                                name='System Health (Remediation)',
-                                line=dict(color='#ff69b4', width=2),
-                                marker=dict(size=8)
-                            ))
+                            # Plot the system health charts with custom colors
+                            if not chaos_health.empty and not chaos_health['System Health (Chaos)'].isnull().all():
+                                st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
+                                st.line_chart(chaos_health, height=150)
                             
-                        # Customize chart layout
-                        fig.update_layout(
-                            margin=dict(l=0, r=0, t=0, b=0),
-                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                            template="plotly_dark",
-                            yaxis=dict(range=[0, 1]),
-                            xaxis=dict(title="Step")
-                        )
-                        
-                        # Display the Plotly chart
-                        st.plotly_chart(fig, use_container_width=True)
+                            if not remediation_health.empty and not remediation_health['System Health (Remediation)'].isnull().all():
+                                st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
+                                st.line_chart(remediation_health, height=150)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
