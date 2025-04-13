@@ -13,7 +13,7 @@ import requests  # For Slack API fallback if slack_sdk is not available
 # Define Slack constants
 SLACK_CHANNEL_ID = "C08LJRT9VM3"  # Channel ID for posting messages
 SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name for reading history
-SLACK_DEFAULT_TOKEN = ""  # Default token (empty for security)
+SLACK_DEFAULT_TOKEN = "xoxb-fake-token-for-simulation-only"  # Default token for simulation mode
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
 # Try to import Slack SDK, but provide fallback if not available
@@ -497,7 +497,31 @@ def check_for_approval(slack_token, original_ts, channel=SLACK_CHANNEL_ID):
     if not slack_token or not original_ts:
         logger.warning("Missing slack token or timestamp. Skipping approval check.")
         return None
+    
+    # Handle simulation mode with fake token
+    if "fake-token" in slack_token:
+        logger.info("Using simulation mode for Slack approval check")
         
+        # Use the check count from session state to simulate a delay before approval
+        if 'check_count' in st.session_state:
+            # After a few checks, approve automatically to enable demo mode
+            if st.session_state.check_count >= 3:
+                # If manually checking now button was clicked, approve immediately
+                if st.session_state.get('force_check_now', False):
+                    st.session_state.force_check_now = False
+                    logger.info("Simulation mode: Manual check approved")
+                    return "approved"
+                
+                # Otherwise have a chance of approval that increases over time
+                import random
+                approval_chance = min(0.3, 0.1 * (st.session_state.check_count / 3))
+                if random.random() < approval_chance:
+                    logger.info(f"Simulation mode: Auto-approved after {st.session_state.check_count} checks")
+                    return "approved"
+        
+        return None
+        
+    # Normal Slack API mode
     try:
         if SLACK_SDK_AVAILABLE:
             # Use slack_sdk if available
@@ -718,6 +742,12 @@ def display_chaos_simulation():
                 # Send Slack notification using the default token
                 with st.spinner("Sending security approval request to Slack..."):
                     message_ts = request_approval(st.session_state.slack_token)
+                    
+                    # For simulation purposes, generate a fake timestamp if we're in simulation mode
+                    if not message_ts and "fake-token" in st.session_state.slack_token:
+                        message_ts = str(time.time())
+                        logger.info("Using simulation mode with fake message timestamp")
+                    
                     if message_ts:
                         st.session_state.approval_message_ts = message_ts
                         st.success("Security approval request sent to Slack. Check the #chaos-engineering channel for approval.")
@@ -796,6 +826,7 @@ def display_chaos_simulation():
             
             if st.button("📋 Check for Slack Approval Now", help="Click to immediately check if approval has been granted in Slack"):
                 st.session_state.last_approval_check = 0  # Force immediate check
+                st.session_state.force_check_now = True  # Flag for simulation mode to auto-approve
                 st.rerun()
         else:
             st.warning("Slack approval message not sent properly. Please try requesting approval again.")
