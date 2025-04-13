@@ -782,9 +782,14 @@ def display_dashboard():
     
     # Compute anomaly score - this would normally come from the model
     import random
-    anomaly_score = metrics.get('security_findings', 0) * 0.01 + metrics.get('failed_logins', 0) * 0.01
-    if anomaly_score == 0:
-        anomaly_score = random.uniform(0.01, 0.1)  # Sample value if no metrics yet
+    # Always ensure anomaly score is in normal range when webapp initially loads
+    if 'first_load' not in st.session_state:
+        st.session_state.first_load = True
+        anomaly_score = random.uniform(0.01, 0.1)  # Normal range for initial load
+    else:
+        anomaly_score = metrics.get('security_findings', 0) * 0.01 + metrics.get('failed_logins', 0) * 0.01
+        if anomaly_score == 0:
+            anomaly_score = random.uniform(0.01, 0.1)  # Sample value if no metrics yet
     
     # Determine anomaly level
     anomaly_level = "LOW"
