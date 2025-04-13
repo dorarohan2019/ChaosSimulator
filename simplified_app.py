@@ -657,8 +657,8 @@ def display_dashboard():
     # Convert deques to lists for plotting
     history_dict = {k: list(v) for k, v in st.session_state.metrics_history.items()}
     if any(len(v) > 0 for v in history_dict.values()):
-        st.write("**X-axis:** Time (most recent data points on right)")
-        st.write("**Y-axis:** Metric Value")
+        st.write("**X-axis:** Time Intervals (most recent data points on right)")
+        st.write("**Y-axis:** Real-time Security Metrics (CPU, Memory, Network, Errors)")
         st.line_chart(history_dict)
     else:
         st.info("No metrics data available yet. Click 'Refresh Metrics' to collect data.")
@@ -903,8 +903,8 @@ def display_chaos_simulation():
                     # Display the unified system metrics chart
                     if not system_metrics.empty:
                         # Display chart with clear color coding
-                        st.write("**X-axis:** Time/Step Index (increases during simulation)")
-                        st.write("**Y-axis:** Metric Value (0-1 scale)")
+                        st.write("**X-axis:** Simulation Steps (Step Number)")
+                        st.write("**Y-axis:** Security Metrics (Anomaly Score and System Health)")
                         st.line_chart(system_metrics)
                         
                         # Add an explanation of the metrics
@@ -982,8 +982,8 @@ def display_chaos_simulation():
                     
                     # Display the unified infrastructure metrics chart
                     if not infra_metrics.empty:
-                        st.write("**X-axis:** Time/Step Index (increases during simulation)")
-                        st.write("**Y-axis:** Infrastructure Metric Values (scaled appropriately per metric)")
+                        st.write("**X-axis:** Simulation Steps (Chaos & Remediation)")
+                        st.write("**Y-axis:** CPU Utilization (%), Memory Usage (%), Network Latency (ms), API Error Rate, Service Availability (%)")
                         st.line_chart(infra_metrics)
                         
                         # Create a compact legend with smaller font size
@@ -1279,7 +1279,7 @@ def display_chaos_simulation():
                     remediation_id = remediation_action.item()
                     remediation_description = remediation_env.get_action_description(remediation_id)
                     
-                    status_container.warning(f"Step {step+1}.B: Applying remediation: {remediation_description}")
+                    status_container.warning(f"Step {step+1}R: Applying remediation: {remediation_description}")
                     
                     # Apply remediation
                     remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
