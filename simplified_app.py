@@ -1194,8 +1194,8 @@ def display_chaos_simulation():
                     
                     # Display the unified system metrics chart with different colors for phases
                     if not system_metrics.empty:
-                        # Instead of using streamlit's built-in line_chart, create a custom colored chart
-                        # This requires creating separate series for chaos and remediation phases
+                        # Create a custom Plotly chart with specific colors for each series
+                        import plotly.graph_objects as go
                         
                         # Find the index where remediation begins
                         remediation_start_idx = None
@@ -1203,22 +1203,82 @@ def display_chaos_simulation():
                             if phase == 'Remediation' and (i == 0 or df['phase'].iloc[i-1] != 'Remediation'):
                                 remediation_start_idx = i
                                 break
-                        
-                        # Create custom HTML for the chart legend
+                                
+                        # Create legend with explicit colors
                         st.markdown("""
                         <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #4e4e6e;">
                         <h5 style="margin-top: 0; color: #ff9d5c;">System Status Metrics:</h5>
                         <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
                         <li><b style="color: #ff3b30;">Anomaly Score (Chaos)</b>: Severity of security issues during attack simulation</li>
-                        <li><b style="color: #ff9900;">Anomaly Score (Remediation)</b>: Security issues during automatic remediation</li>
+                        <li><b style="color: #ffcc00;">Anomaly Score (Remediation)</b>: Security issues during automatic remediation</li>
                         <li><b style="color: #00a651;">System Health (Chaos)</b>: Overall system stability during attack</li>
-                        <li><b style="color: #ff9cce;">System Health (Remediation)</b>: System recovery during remediation</li>
+                        <li><b style="color: #ff69b4;">System Health (Remediation)</b>: System recovery during remediation</li>
                         </ul>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Use the regular chart for display, but with explanation of colors
-                        st.line_chart(system_metrics)
+                        # Separate data by phase
+                        fig = go.Figure()
+                        
+                        # Get indices for each phase
+                        chaos_indices = df[df['phase'] == 'Chaos'].index.tolist()
+                        remediation_indices = df[df['phase'] == 'Remediation'].index.tolist()
+                        
+                        # Add traces for Chaos phase with red and green
+                        if chaos_indices:
+                            # Add Anomaly Score for Chaos phase - RED color
+                            fig.add_trace(go.Scatter(
+                                x=chaos_indices,
+                                y=df.loc[chaos_indices, 'anomaly_score'],
+                                mode='lines+markers',
+                                name='Anomaly Score (Chaos)',
+                                line=dict(color='#ff3b30', width=2),
+                                marker=dict(size=8)
+                            ))
+                            
+                            # Add System Health for Chaos phase - GREEN color
+                            fig.add_trace(go.Scatter(
+                                x=chaos_indices,
+                                y=df.loc[chaos_indices, 'system_health'],
+                                mode='lines+markers',
+                                name='System Health (Chaos)',
+                                line=dict(color='#00a651', width=2),
+                                marker=dict(size=8)
+                            ))
+                            
+                        # Add traces for Remediation phase with yellow and pink
+                        if remediation_indices:
+                            # Add Anomaly Score for Remediation phase - YELLOW color
+                            fig.add_trace(go.Scatter(
+                                x=remediation_indices,
+                                y=df.loc[remediation_indices, 'anomaly_score'],
+                                mode='lines+markers',
+                                name='Anomaly Score (Remediation)',
+                                line=dict(color='#ffcc00', width=2),
+                                marker=dict(size=8)
+                            ))
+                            
+                            # Add System Health for Remediation phase - PINK color
+                            fig.add_trace(go.Scatter(
+                                x=remediation_indices,
+                                y=df.loc[remediation_indices, 'system_health'],
+                                mode='lines+markers',
+                                name='System Health (Remediation)',
+                                line=dict(color='#ff69b4', width=2),
+                                marker=dict(size=8)
+                            ))
+                            
+                        # Customize chart layout
+                        fig.update_layout(
+                            margin=dict(l=0, r=0, t=0, b=0),
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            template="plotly_dark",
+                            yaxis=dict(range=[0, 1]),
+                            xaxis=dict(title="Step")
+                        )
+                        
+                        # Display the Plotly chart
+                        st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
