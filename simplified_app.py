@@ -1206,21 +1206,28 @@ def display_chaos_simulation():
                             chaos_anomaly = pd.DataFrame(index=range(len(df)))
                             remediation_anomaly = pd.DataFrame(index=range(len(df)))
                             
-                            # Fill in data for each phase
+                            # Fill in data for each phase more explicitly, preserving indices
+                            chaos_indices = []
+                            remediation_indices = []
+                            
                             for i, row in df.iterrows():
                                 if row['phase'] == 'Chaos':
+                                    chaos_indices.append(i)
                                     chaos_anomaly.at[i, 'Anomaly Score (Chaos)'] = row['anomaly_score']
                                 elif row['phase'] == 'Remediation':
+                                    remediation_indices.append(i)
                                     remediation_anomaly.at[i, 'Anomaly Score (Remediation)'] = row['anomaly_score']
                             
                             # Plot the anomaly score charts with custom colors
-                            if not chaos_anomaly.empty and not chaos_anomaly['Anomaly Score (Chaos)'].isnull().all():
+                            if not chaos_anomaly.empty and len(chaos_indices) > 0:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(chaos_anomaly, height=150)
+                                st.line_chart(chaos_anomaly.iloc[chaos_indices], height=150)
                             
-                            if not remediation_anomaly.empty and not remediation_anomaly['Anomaly Score (Remediation)'].isnull().all():
+                            if not remediation_anomaly.empty and len(remediation_indices) > 0:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                st.line_chart(remediation_anomaly, height=150)
+                                clean_remediation_df = remediation_anomaly.dropna()
+                                if not clean_remediation_df.empty:
+                                    st.line_chart(clean_remediation_df, height=150)
                         
                         with col2:
                             st.subheader("System Health")
