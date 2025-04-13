@@ -13,7 +13,7 @@ import requests  # For Slack API fallback if slack_sdk is not available
 # Define Slack constants
 SLACK_CHANNEL_ID = "C08LJRT9VM3"  # Channel ID for posting messages
 SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name for reading history
-SLACK_DEFAULT_TOKEN = "xoxb-8693650061862-8686339764119-xjW7OsW6q4r9jB2DL5ZsZp8b"  # Default token
+SLACK_DEFAULT_TOKEN = ""  # Default token (empty for security)
 APPROVAL_TIMEOUT = 600  # 10 minutes timeout for approval
 
 # Try to import Slack SDK, but provide fallback if not available
@@ -709,9 +709,7 @@ def display_chaos_simulation():
             
         # Display Slack configuration info
         if st.session_state.slack_token:
-            st.success(f"Using Slack channel name: {SLACK_CHANNEL_NAME} for sending messages")
-            st.info(f"Using Slack channel ID: {SLACK_CHANNEL_ID} for approval checks")
-            st.info("Slack is the only approval method for this simulation")
+            st.info("Asking Approval through Slack")
         
         # Approval workflow
         if not st.session_state.approval_requested:
@@ -923,21 +921,18 @@ def display_chaos_simulation():
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Add phase transition indicators
+                        # Add more descriptive axis labels with phase markers instead of phase transitions
                         if 'phase' in df.columns:
-                            phase_transitions = []
-                            current_phase = None
+                            # Find the index where remediation begins
+                            remediation_start_idx = None
                             for i, phase in enumerate(df['phase']):
-                                if phase != current_phase:
-                                    if i > 0:  # Skip the first point
-                                        phase_transitions.append((i, phase))
-                                    current_phase = phase
+                                if phase == 'Remediation' and (i == 0 or df['phase'].iloc[i-1] != 'Remediation'):
+                                    remediation_start_idx = i
+                                    break
                             
-                            if phase_transitions:
-                                st.write("**Phase Transitions:**")
-                                for idx, phase in phase_transitions:
-                                    if phase == 'Remediation':
-                                        st.info(f"🟢 Remediation phase begins at step {idx}")
+                            if remediation_start_idx is not None:
+                                # Add a note about phases directly in the X-axis label
+                                st.write(f"**Note:** Steps 0-{remediation_start_idx-1} are Chaos phase (C), Steps {remediation_start_idx}+ are Remediation phase (R)")
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
@@ -991,18 +986,17 @@ def display_chaos_simulation():
                         st.write("**Y-axis:** Infrastructure Metric Values (scaled appropriately per metric)")
                         st.line_chart(infra_metrics)
                         
-                        # Create a separate table showing the metric colors and meanings for clarity
+                        # Create a compact legend with smaller font size
                         st.markdown("""
-                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 15px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #4e4e6e;">
-                        <h4 style="margin-top: 0; color: #ff9d5c;">Security Impact on Infrastructure Metrics - Legend</h4>
-                        <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
-                        <li><b style="color: #429bf5;">CPU Utilization (%)</b>: Shows increased processing load during security incidents (brute force attacks, DDoS)</li>
-                        <li><b style="color: #ff6961;">Memory Usage (%)</b>: Indicates memory consumption from security events (buffer overflows, memory leaks from exploits)</li>
-                        <li><b style="color: #ff0000;">Network Latency (ms)</b>: Network delays resulting from security incidents</li>
-                        <li><b style="color: #77dd77;">Service Availability (%)</b>: Service uptime impacted by security breaches</li>
-                        <li><b style="color: #94bfff;">API Error Rate (×100)</b>: Failed API calls due to security vulnerabilities (multiplied by 100 for visibility)</li>
+                        <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #4e4e6e;">
+                        <h5 style="margin-top: 0; margin-bottom: 5px; color: #ff9d5c; font-size: 0.9em;">Security Impact on Infrastructure Metrics - Legend</h5>
+                        <ul style="margin-bottom: 0; padding-left: 15px; color: #e0e0e0; font-size: 0.85em;">
+                        <li><b style="color: #429bf5;">CPU Utilization (%)</b>: Processing load (brute force, DDoS)</li>
+                        <li><b style="color: #ff6961;">Memory Usage (%)</b>: Memory consumption (buffer overflows, leaks)</li>
+                        <li><b style="color: #ff0000;">Network Latency (ms)</b>: Network delays (traffic manipulation)</li>
+                        <li><b style="color: #77dd77;">Service Availability (%)</b>: Uptime impact (breaches)</li>
+                        <li><b style="color: #94bfff;">API Error Rate (×100)</b>: Failed API calls (vulnerabilities)</li>
                         </ul>
-                        <p style="margin-bottom: 0; font-style: italic; color: #c0c0c0;">This graph shows how security vulnerabilities impact infrastructure metrics during chaos phase and how security remediations restore system health.</p>
                         </div>
                         """, unsafe_allow_html=True)
                         
@@ -1144,7 +1138,7 @@ def display_chaos_simulation():
                     action_id = chaos_action.item()
                     action_description = chaos_env.get_action_description(action_id)
                     
-                    status_container.info(f"Step {step+1}.A: Executing chaos action: {action_description}")
+                    status_container.info(f"Step {step+1}: Executing chaos action: {action_description}")
                 
                     # Apply chaos action
                     next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
