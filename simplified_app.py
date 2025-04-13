@@ -140,13 +140,19 @@ class MockStateCollector:
             if 'count' in key:
                 state[key] = random.randint(1, 10)
             elif 'cpu' in key:
-                state[key] = random.uniform(10.0, 80.0)
+                # Return whole integer values for CPU metrics
+                state[key] = random.randint(10, 80)
             elif 'errors' in key or 'findings' in key:
                 state[key] = random.randint(0, 5)
             elif 'latency' in key:
-                state[key] = random.uniform(0.01, 1.0)
+                # Return whole integer values for latency
+                state[key] = random.randint(1, 100)
+            elif 'invocations' in key or 'logins' in key:
+                # Return whole integer values for invocations and logins
+                state[key] = random.randint(10, 100)
             else:
-                state[key] = random.uniform(1.0, 100.0)
+                # Return whole integer values for all other metrics
+                state[key] = random.randint(10, 100)
                 
         return state
 
@@ -794,9 +800,9 @@ def display_dashboard():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        ec2_running = metrics.get('ec2_running', 5)
-        ec2_count = metrics.get('ec2_count', 5)
-        ec2_cpu = int(metrics.get('ec2_cpu_avg', 30.0))
+        ec2_running = int(metrics.get('ec2_running', 5))
+        ec2_count = int(metrics.get('ec2_count', 5))
+        ec2_cpu = int(metrics.get('ec2_cpu_avg', 30))
         st.markdown(f"""
         <div class="metric-card ec2">
             <p class="metric-title">🖥️ EC2 Instances</p>
@@ -806,10 +812,10 @@ def display_dashboard():
         """, unsafe_allow_html=True)
         
     with col2:
-        rds_available = metrics.get('rds_available', 2)
-        rds_count = metrics.get('rds_count', 2)
-        rds_cpu = int(metrics.get('rds_cpu', 40.0))
-        rds_connections = metrics.get('rds_connections', 100)
+        rds_available = int(metrics.get('rds_available', 2))
+        rds_count = int(metrics.get('rds_count', 2))
+        rds_cpu = int(metrics.get('rds_cpu', 40))
+        rds_connections = int(metrics.get('rds_connections', 100))
         st.markdown(f"""
         <div class="metric-card rds">
             <p class="metric-title">🛢️ RDS Databases</p>
@@ -819,9 +825,9 @@ def display_dashboard():
         """, unsafe_allow_html=True)
         
     with col3:
-        lambda_count = metrics.get('lambda_count', 3)
-        lambda_invocations = metrics.get('lambda_invocations', 250)
-        lambda_errors = metrics.get('lambda_errors', 2)
+        lambda_count = int(metrics.get('lambda_count', 3))
+        lambda_invocations = int(metrics.get('lambda_invocations', 250))
+        lambda_errors = int(metrics.get('lambda_errors', 2))
         st.markdown(f"""
         <div class="metric-card lambda">
             <p class="metric-title">λ Lambda Functions</p>
@@ -831,9 +837,9 @@ def display_dashboard():
         """, unsafe_allow_html=True)
         
     with col4:
-        s3_bucket_count = metrics.get('s3_bucket_count', 10)
+        s3_bucket_count = int(metrics.get('s3_bucket_count', 10))
         s3_object_count = int(metrics.get('s3_object_count', 3000))
-        s3_total_size = int(metrics.get('s3_total_size', 3.0))
+        s3_total_size = int(metrics.get('s3_total_size', 3))
         st.markdown(f"""
         <div class="metric-card storage">
             <p class="metric-title">📦 Storage</p>
@@ -846,7 +852,7 @@ def display_dashboard():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        elb_requests = metrics.get('elb_requests', 500)
+        elb_requests = int(metrics.get('elb_requests', 500))
         elb_latency = int(metrics.get('elb_latency', 0.1) * 100)
         st.markdown(f"""
         <div class="metric-card lb">
@@ -869,8 +875,8 @@ def display_dashboard():
         """, unsafe_allow_html=True)
         
     with col3:
-        sqs_queue_count = metrics.get('sqs_queue_count', 2)
-        sqs_message_count = metrics.get('sqs_message_count', 100)
+        sqs_queue_count = int(metrics.get('sqs_queue_count', 2))
+        sqs_message_count = int(metrics.get('sqs_message_count', 100))
         st.markdown(f"""
         <div class="metric-card sqs">
             <p class="metric-title">📨 SQS Queues</p>
@@ -880,9 +886,9 @@ def display_dashboard():
         """, unsafe_allow_html=True)
         
     with col4:
-        security_findings = metrics.get('security_findings', 2)
-        failed_logins = metrics.get('failed_logins', 5)
-        vulnerability_count = metrics.get('vulnerability_count', 1)
+        security_findings = int(metrics.get('security_findings', 2))
+        failed_logins = int(metrics.get('failed_logins', 5))
+        vulnerability_count = int(metrics.get('vulnerability_count', 1))
         
         # Add alert styling if there are security findings
         security_class = "metric-card security alert" if security_findings > 0 else "metric-card security"
