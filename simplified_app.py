@@ -697,36 +697,34 @@ def display_chaos_simulation():
         }
         delay = speed_map[simulation_speed]
         
-        # Add Slack token input
-        slack_token = st.text_input("Slack API Token", value=SLACK_DEFAULT_TOKEN, type="password", 
-                                  help="API token for Slack notifications")
+        # Initialize Slack token from default (no UI input needed)
         if "slack_token" not in st.session_state:
             st.session_state.slack_token = SLACK_DEFAULT_TOKEN
         
-        # Save token to session state when entered
-        if slack_token:
-            st.session_state.slack_token = slack_token
-            
-        # Display Slack configuration info
-        if st.session_state.slack_token:
-            st.info("Asking Approval through Slack")
-        
-        # Approval workflow
+        # Approval workflow with enhanced security focus
         if not st.session_state.approval_requested:
-            if st.button("Request Simulation Approval"):
+            st.markdown("""
+            <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #4e4e6e;">
+            <h5 style="margin-top: 0; color: #ff9d5c;">🔒 Security Notice</h5>
+            <p style="margin-bottom: 0; color: #e0e0e0; font-size: 0.9em;">
+            Chaos experiments can impact infrastructure security. Approval via Slack is required before proceeding.
+            </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("🔔 Request Simulation Approval via Slack"):
                 st.session_state.approval_requested = True
                 
-                # Send Slack notification if token available
-                if st.session_state.slack_token:
-                    with st.spinner("Sending approval request to Slack..."):
-                        message_ts = request_approval(st.session_state.slack_token)
-                        if message_ts:
-                            st.session_state.approval_message_ts = message_ts
-                            st.success("Approval request sent to Slack. Please check the Slack channel for approval.")
-                        else:
-                            st.error("Failed to send approval request to Slack. Check your Slack token and channel ID and try again.")
+                # Send Slack notification using the default token
+                with st.spinner("Sending security approval request to Slack..."):
+                    message_ts = request_approval(st.session_state.slack_token)
+                    if message_ts:
+                        st.session_state.approval_message_ts = message_ts
+                        st.success("Security approval request sent to Slack. Check the #chaos-engineering channel for approval.")
+                    else:
+                        st.error("Failed to send approval request to Slack. Please try again or check Slack connection.")
                 
-                st.success("Approval requested. Please confirm to proceed.")
+                st.success("Approval requested. Please confirm to proceed with security testing.")
                 st.rerun()
     
     with col2:
@@ -740,7 +738,6 @@ def display_chaos_simulation():
     
     # Approval confirmation - using Slack as the only source for approval
     if st.session_state.approval_requested and not st.session_state.simulation_running:
-        st.info("⚠️ Chaos experiments can disrupt systems. Approval must be granted via Slack.")
         
         # Implement auto-polling for Slack approval
         if 'approval_message_ts' in st.session_state and st.session_state.slack_token:
@@ -790,8 +787,14 @@ def display_chaos_simulation():
                 else:
                     st.info("⏳ Waiting for 'approve' message in Slack...")
                     
-            # Still provide manual option
-            if st.button("Force Manual Check Now"):
+            # Prominently display manual check button
+            st.markdown("""
+            <div style="background-color: rgba(39, 41, 61, 0.8); padding: 10px; border-radius: 5px; margin: 15px 0; border: 1px solid #4e4e6e;">
+            <p style="margin-bottom: 5px; color: #f0f0f0;">Need immediate approval confirmation? Use the button below:</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("📋 Check for Slack Approval Now", help="Click to immediately check if approval has been granted in Slack"):
                 st.session_state.last_approval_check = 0  # Force immediate check
                 st.rerun()
         else:
