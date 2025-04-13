@@ -654,76 +654,118 @@ def display_dashboard():
     card_style = """
     <style>
     .metric-card {
-        background-color: rgba(247, 248, 249, 0.8);
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        background: linear-gradient(135deg, rgba(247, 248, 249, 0.9) 0%, rgba(230, 235, 245, 0.9) 100%);
+        border-radius: 12px;
+        padding: 18px;
+        margin: 12px 0;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        border: 1px solid rgba(200, 210, 220, 0.5);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
     .metric-card.alert {
-        background-color: rgba(255, 240, 240, 0.8);
-        border-left: 3px solid #f75f5f;
+        background: linear-gradient(135deg, rgba(255, 245, 245, 0.9) 0%, rgba(255, 230, 230, 0.9) 100%);
+        border-left: 4px solid #ff4d4d;
+    }
+    .metric-card.ec2 {
+        border-top: 4px solid #4a90e2;
+    }
+    .metric-card.rds {
+        border-top: 4px solid #50b068;
+    }
+    .metric-card.lambda {
+        border-top: 4px solid #c27ba0;
+    }
+    .metric-card.storage {
+        border-top: 4px solid #f1c232;
+    }
+    .metric-card.lb {
+        border-top: 4px solid #8e7cc3;
+    }
+    .metric-card.network {
+        border-top: 4px solid #6aa84f;
+    }
+    .metric-card.sqs {
+        border-top: 4px solid #e69138;
+    }
+    .metric-card.security {
+        border-top: 4px solid #cc0000;
+    }
+    .metric-card.model {
+        border-top: 4px solid #674EA7;
     }
     .metric-icon {
-        color: #555;
-        font-size: 1.5rem;
-        margin-right: 10px;
+        color: #456;
+        font-size: 1.6rem;
+        margin-right: 12px;
         vertical-align: middle;
     }
     .metric-title {
-        color: #555;
+        color: #456;
         font-size: 0.9rem;
-        font-weight: 500;
-        margin: 0;
+        font-weight: 600;
+        margin: 0 0 5px 0;
+        letter-spacing: 0.3px;
     }
     .metric-value {
-        color: #111;
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 5px 0;
+        color: #223;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 8px 0;
+        letter-spacing: 0.5px;
     }
     .metric-details {
-        color: #666;
-        font-size: 0.8rem;
-        margin: 0;
+        color: #567;
+        font-size: 0.85rem;
+        margin: 5px 0 0 0;
+        letter-spacing: 0.2px;
     }
     .anomaly-section {
-        background-color: rgba(247, 248, 249, 0.8);
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0 20px 0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        background: linear-gradient(135deg, rgba(240, 245, 255, 0.9) 0%, rgba(230, 240, 250, 0.9) 100%);
+        border-radius: 12px;
+        padding: 18px;
+        margin: 15px 0 25px 0;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        border: 1px solid rgba(200, 210, 220, 0.5);
     }
     .anomaly-low {
-        color: #28a745;
+        color: #00a651;
         font-weight: bold;
-        background-color: rgba(40, 167, 69, 0.1);
+        background-color: rgba(0, 166, 81, 0.12);
         border-radius: 12px;
-        padding: 2px 8px;
+        padding: 3px 10px;
+        letter-spacing: 0.5px;
     }
     .anomaly-medium {
-        color: #ffc107;
+        color: #ff9900;
         font-weight: bold;
-        background-color: rgba(255, 193, 7, 0.1);
+        background-color: rgba(255, 153, 0, 0.12);
         border-radius: 12px;
-        padding: 2px 8px;
+        padding: 3px 10px;
+        letter-spacing: 0.5px;
     }
     .anomaly-high {
-        color: #dc3545;
+        color: #ff3b30;
         font-weight: bold;
-        background-color: rgba(220, 53, 69, 0.1);
+        background-color: rgba(255, 59, 48, 0.12);
         border-radius: 12px;
-        padding: 2px 8px;
+        padding: 3px 10px;
+        letter-spacing: 0.5px;
     }
     .progress-container {
         width: 100%;
         background-color: #e9ecef;
-        border-radius: 5px;
+        border-radius: 8px;
+        overflow: hidden;
     }
     .progress-bar {
-        height: 10px;
-        background-color: #28a745;
-        border-radius: 5px;
+        height: 12px;
+        background-color: #00a651;
+        border-radius: 8px;
+        transition: width 0.3s ease;
     }
     </style>
     """
@@ -754,25 +796,25 @@ def display_dashboard():
     with col1:
         ec2_running = metrics.get('ec2_running', 5)
         ec2_count = metrics.get('ec2_count', 5)
-        ec2_cpu = metrics.get('ec2_cpu_avg', 30.0)
+        ec2_cpu = int(metrics.get('ec2_cpu_avg', 30.0))
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card ec2">
             <p class="metric-title">🖥️ EC2 Instances</p>
             <h2 class="metric-value">{ec2_running}/{ec2_count}</h2>
-            <p class="metric-details">CPU: {ec2_cpu:.1f}%</p>
+            <p class="metric-details">CPU: {ec2_cpu}%</p>
         </div>
         """, unsafe_allow_html=True)
         
     with col2:
         rds_available = metrics.get('rds_available', 2)
         rds_count = metrics.get('rds_count', 2)
-        rds_cpu = metrics.get('rds_cpu', 40.0)
+        rds_cpu = int(metrics.get('rds_cpu', 40.0))
         rds_connections = metrics.get('rds_connections', 100)
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card rds">
             <p class="metric-title">🛢️ RDS Databases</p>
             <h2 class="metric-value">{rds_available}/{rds_count}</h2>
-            <p class="metric-details">CPU: {rds_cpu:.1f}% | Connections: {rds_connections}</p>
+            <p class="metric-details">CPU: {rds_cpu}% | Connections: {rds_connections}</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -781,7 +823,7 @@ def display_dashboard():
         lambda_invocations = metrics.get('lambda_invocations', 250)
         lambda_errors = metrics.get('lambda_errors', 2)
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card lambda">
             <p class="metric-title">λ Lambda Functions</p>
             <h2 class="metric-value">{lambda_count}</h2>
             <p class="metric-details">Invocations: {lambda_invocations} | Errors: {lambda_errors}</p>
@@ -790,13 +832,13 @@ def display_dashboard():
         
     with col4:
         s3_bucket_count = metrics.get('s3_bucket_count', 10)
-        s3_object_count = metrics.get('s3_object_count', 3000)
-        s3_total_size = metrics.get('s3_total_size', 3.0)
+        s3_object_count = int(metrics.get('s3_object_count', 3000))
+        s3_total_size = int(metrics.get('s3_total_size', 3.0))
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card storage">
             <p class="metric-title">📦 Storage</p>
             <h2 class="metric-value">{s3_bucket_count} Buckets</h2>
-            <p class="metric-details">Objects: {s3_object_count/1000:.1f}K | Size: {s3_total_size:.1f}GB</p>
+            <p class="metric-details">Objects: {s3_object_count//1000}K | Size: {s3_total_size}GB</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -805,24 +847,24 @@ def display_dashboard():
     
     with col1:
         elb_requests = metrics.get('elb_requests', 500)
-        elb_latency = metrics.get('elb_latency', 0.1)
+        elb_latency = int(metrics.get('elb_latency', 0.1) * 100)
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card lb">
             <p class="metric-title">⚖️ Load Balancer</p>
             <h2 class="metric-value">{elb_requests}</h2>
-            <p class="metric-details">Latency: {elb_latency:.2f}s</p>
+            <p class="metric-details">Latency: {elb_latency/100}s</p>
         </div>
         """, unsafe_allow_html=True)
         
     with col2:
-        network_in = metrics.get('network_in', 2.0)
-        network_out = metrics.get('network_out', 3.0)
-        packet_loss = metrics.get('packet_loss_percent', 0.5)
+        network_in = int(metrics.get('network_in', 2.0))
+        network_out = int(metrics.get('network_out', 3.0))
+        packet_loss = int(metrics.get('packet_loss_percent', 0.5))
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card network">
             <p class="metric-title">🌐 Network</p>
-            <h2 class="metric-value">{network_in:.1f}M/s in</h2>
-            <p class="metric-details">Out: {network_out:.1f}M/s | Loss: {packet_loss}%</p>
+            <h2 class="metric-value">{network_in}M/s in</h2>
+            <p class="metric-details">Out: {network_out}M/s | Loss: {packet_loss}%</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -830,7 +872,7 @@ def display_dashboard():
         sqs_queue_count = metrics.get('sqs_queue_count', 2)
         sqs_message_count = metrics.get('sqs_message_count', 100)
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card sqs">
             <p class="metric-title">📨 SQS Queues</p>
             <h2 class="metric-value">{sqs_queue_count}</h2>
             <p class="metric-details">Messages: {sqs_message_count}</p>
@@ -843,7 +885,7 @@ def display_dashboard():
         vulnerability_count = metrics.get('vulnerability_count', 1)
         
         # Add alert styling if there are security findings
-        security_class = "metric-card alert" if security_findings > 0 else "metric-card"
+        security_class = "metric-card security alert" if security_findings > 0 else "metric-card security"
         
         st.markdown(f"""
         <div class="{security_class}">
@@ -854,21 +896,22 @@ def display_dashboard():
         """, unsafe_allow_html=True)
     
     # Anomaly score section
+    anomaly_score_int = int(anomaly_score * 1000) / 1000  # For displaying with exact 3 decimal places
     st.markdown(f"""
     <div class="anomaly-section">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div>
                 <p style="margin: 0; display: flex; align-items: center;">
-                    <span style="color: #28a745;">⚠️</span> 
-                    <span style="margin-left: 8px; font-weight: 500;">Anomaly Score: {anomaly_score:.3f}</span>
-                    <span style="margin-left: 10px;" class="{anomaly_class}">{anomaly_level}</span>
+                    <span style="color: #ff3b30;">⚠️</span> 
+                    <span style="margin-left: 8px; font-weight: 600; font-size: 1.1rem;">Anomaly Score: {anomaly_score_int}</span>
+                    <span style="margin-left: 12px;" class="{anomaly_class}">{anomaly_level}</span>
                 </p>
             </div>
         </div>
-        <div class="progress-container" style="margin-top: 10px;">
-            <div class="progress-bar" style="width: {min(anomaly_score * 100, 100)}%; background-color: {'#28a745' if anomaly_score < 0.15 else '#ffc107' if anomaly_score < 0.3 else '#dc3545'};"></div>
+        <div class="progress-container" style="margin-top: 12px;">
+            <div class="progress-bar" style="width: {min(anomaly_score * 100, 100)}%; background-color: {'#00a651' if anomaly_score < 0.15 else '#ff9900' if anomaly_score < 0.3 else '#ff3b30'};"></div>
         </div>
-        <p style="margin-top: 8px; color: #666; font-size: 0.85rem;">
+        <p style="margin-top: 10px; color: #456; font-size: 0.9rem;">
             System operating within normal parameters.
         </p>
     </div>
@@ -880,9 +923,9 @@ def display_dashboard():
     
     with col1:
         model_status = st.session_state.model_statuses['anomaly_model']
-        status_color = "#28a745" if model_status == 'Loaded' else "#6c757d"
+        status_color = "#00a651" if model_status == 'Loaded' else "#6c757d"
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card model">
             <p class="metric-title">🔍 Anomaly Detection Model</p>
             <h2 class="metric-value" style="color: {status_color};">{model_status}</h2>
             <p class="metric-details">Trained on infrastructure security metrics</p>
@@ -891,9 +934,9 @@ def display_dashboard():
         
     with col2:
         agent_status = st.session_state.model_statuses['chaos_agent']
-        status_color = "#28a745" if agent_status == 'Trained' else "#6c757d"
+        status_color = "#00a651" if agent_status == 'Trained' else "#6c757d"
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card model">
             <p class="metric-title">🧪 Chaos Agent</p>
             <h2 class="metric-value" style="color: {status_color};">{agent_status}</h2>
             <p class="metric-details">Creates security vulnerabilities for testing</p>
@@ -902,9 +945,9 @@ def display_dashboard():
         
     with col3:
         agent_status = st.session_state.model_statuses['remediation_agent']
-        status_color = "#28a745" if agent_status == 'Trained' else "#6c757d"
+        status_color = "#00a651" if agent_status == 'Trained' else "#6c757d"
         st.markdown(f"""
-        <div class="metric-card">
+        <div class="metric-card model">
             <p class="metric-title">🛡️ Remediation Agent</p>
             <h2 class="metric-value" style="color: {status_color};">{agent_status}</h2>
             <p class="metric-details">Automatically fixes security vulnerabilities</p>
