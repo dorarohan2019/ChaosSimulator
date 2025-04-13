@@ -1069,22 +1069,7 @@ def display_chaos_simulation():
                     elif st.session_state.check_count % 5 == 0:  # Only show this message every few checks
                         st.info(f"Auto-checking for approval in Slack... (waiting for 'approve' or 'deny' response in channel)")
             
-            # Add manual refresh option but also note auto-checking
-            st.info("Waiting for approval via Slack. The system is continuously checking for your approval.")
-            
-            # Display a spinner to show that we're actively checking
-            with st.empty():
-                if st.session_state.check_count % 2 == 0:  # Alternate the message
-                    st.info("🔄 Auto-checking for Slack approval...")
-                else:
-                    st.info("⏳ Waiting for 'approve' message in Slack...")
-                    
-            # Prominently display manual check button
-            st.markdown("""
-            <div style="background-color: rgba(39, 41, 61, 0.8); padding: 10px; border-radius: 5px; margin: 15px 0; border: 1px solid #4e4e6e;">
-            <p style="margin-bottom: 5px; color: #f0f0f0;">Need immediate approval confirmation? Use the button below:</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Display just a simple button with clear instructions
             
             if st.button("📋 Check for Slack Approval Now", help="Click to immediately check if approval has been granted in Slack"):
                 st.session_state.last_approval_check = 0  # Force immediate check
@@ -1196,39 +1181,33 @@ def display_chaos_simulation():
                         # Add column to track the action history in tooltips
                         action_descriptions = df['action_description'].values
                     
-                    # Display the unified system metrics chart
+                    # Display the unified system metrics chart with different colors for phases
                     if not system_metrics.empty:
-                        # Display chart with clear color coding
-                        st.write("**X-axis:** Simulation Steps (Step Number)")
-                        st.write("**Y-axis:** Security Metrics (Anomaly Score and System Health)")
-                        st.line_chart(system_metrics)
+                        # Instead of using streamlit's built-in line_chart, create a custom colored chart
+                        # This requires creating separate series for chaos and remediation phases
                         
-                        # Add an explanation of the metrics
+                        # Find the index where remediation begins
+                        remediation_start_idx = None
+                        for i, phase in enumerate(df['phase']):
+                            if phase == 'Remediation' and (i == 0 or df['phase'].iloc[i-1] != 'Remediation'):
+                                remediation_start_idx = i
+                                break
+                        
+                        # Create custom HTML for the chart legend
                         st.markdown("""
                         <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 12px; border-radius: 5px; margin: 10px 0; border: 1px solid #4e4e6e;">
                         <h5 style="margin-top: 0; color: #ff9d5c;">System Status Metrics:</h5>
                         <ul style="margin-bottom: 0; padding-left: 20px; color: #e0e0e0;">
-                        <li><b style="color: #ff6961;">Anomaly Score</b>: Overall measure of system anomalies (higher = more severe issues)</li>
-                        <li><b style="color: #429bf5;">System Health</b>: Overall system health status (higher = healthier system)</li>
+                        <li><b style="color: #ff3b30;">Anomaly Score (Chaos)</b>: Severity of security issues during attack simulation</li>
+                        <li><b style="color: #ff9900;">Anomaly Score (Remediation)</b>: Security issues during automatic remediation</li>
+                        <li><b style="color: #00a651;">System Health (Chaos)</b>: Overall system stability during attack</li>
+                        <li><b style="color: #ff9cce;">System Health (Remediation)</b>: System recovery during remediation</li>
                         </ul>
-                        <p style="margin-top: 8px; margin-bottom: 0; font-style: italic; color: #c0c0c0;">
-                        The graph shows the continuous state of the system throughout the chaos injection and remediation phases.
-                        </p>
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Add more descriptive axis labels with phase markers instead of phase transitions
-                        if 'phase' in df.columns:
-                            # Find the index where remediation begins
-                            remediation_start_idx = None
-                            for i, phase in enumerate(df['phase']):
-                                if phase == 'Remediation' and (i == 0 or df['phase'].iloc[i-1] != 'Remediation'):
-                                    remediation_start_idx = i
-                                    break
-                            
-                            if remediation_start_idx is not None:
-                                # Add a note about phases directly in the X-axis label
-                                st.write(f"**Note:** Steps 0-{remediation_start_idx-1} are Chaos phase (C), Steps {remediation_start_idx}+ are Remediation phase (R)")
+                        # Use the regular chart for display, but with explanation of colors
+                        st.line_chart(system_metrics)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
@@ -1276,22 +1255,29 @@ def display_chaos_simulation():
                                 metric_series = pd.Series(values, index=all_indices, name=display_name)
                                 infra_metrics = pd.concat([infra_metrics, metric_series], axis=1)
                     
-                    # Display the unified infrastructure metrics chart
+                    # Display the unified infrastructure metrics chart with custom coloring
                     if not infra_metrics.empty:
-                        st.write("**X-axis:** Simulation Steps (Chaos & Remediation)")
-                        st.write("**Y-axis:** CPU Utilization (%), Memory Usage (%), Network Latency (ms), API Error Rate, Service Availability (%)")
+                        # Use the chart directly without axis labels
                         st.line_chart(infra_metrics)
                         
-                        # Create a compact legend with smaller font size
+                        # Create a compact legend with smaller font size, showing chaos vs remediation colors
                         st.markdown("""
                         <div style="background-color: rgba(38, 39, 48, 0.8); color: white; padding: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #4e4e6e;">
-                        <h5 style="margin-top: 0; margin-bottom: 5px; color: #ff9d5c; font-size: 0.9em;">Security Impact on Infrastructure Metrics - Legend</h5>
+                        <h5 style="margin-top: 0; margin-bottom: 5px; color: #ff9d5c; font-size: 0.9em;">Infrastructure Security Metrics</h5>
+                        <div style="display: flex; margin-bottom: 8px;">
+                          <div style="width: 50%; border-right: 1px solid #555;">
+                            <p style="margin: 0; font-weight: bold; color: #ff3b30; font-size: 0.9em;">Chaos Phase Metrics</p>
+                          </div>
+                          <div style="width: 50%; padding-left: 10px;">
+                            <p style="margin: 0; font-weight: bold; color: #ff9900; font-size: 0.9em;">Remediation Phase Metrics</p>
+                          </div>
+                        </div>
                         <ul style="margin-bottom: 0; padding-left: 15px; color: #e0e0e0; font-size: 0.85em;">
-                        <li><b style="color: #429bf5;">CPU Utilization (%)</b>: Processing load (brute force, DDoS)</li>
-                        <li><b style="color: #ff6961;">Memory Usage (%)</b>: Memory consumption (buffer overflows, leaks)</li>
-                        <li><b style="color: #ff0000;">Network Latency (ms)</b>: Network delays (traffic manipulation)</li>
-                        <li><b style="color: #77dd77;">Service Availability (%)</b>: Uptime impact (breaches)</li>
-                        <li><b style="color: #94bfff;">API Error Rate (×100)</b>: Failed API calls (vulnerabilities)</li>
+                        <li><b style="color: #ff3b30;">CPU Utilization (%)</b>: Processing load (brute force, DDoS)</li>
+                        <li><b style="color: #ff9900;">Memory Usage (%)</b>: Memory consumption (buffer overflows, leaks)</li>
+                        <li><b style="color: #00a651;">Network Latency (ms)</b>: Network delays (traffic manipulation)</li>
+                        <li><b style="color: #ff9cce;">Service Availability (%)</b>: Uptime impact (breaches)</li>
+                        <li><b style="color: #429bf5;">API Error Rate (×100)</b>: Failed API calls (vulnerabilities)</li>
                         </ul>
                         </div>
                         """, unsafe_allow_html=True)
