@@ -3797,7 +3797,6 @@ def main():
             'step': [],
             'system_health': [],
             'anomaly_score': [],
-            'remediation_score': [],
             'phase': [],
             'cpu_utilization': [],
             'memory_usage': [],
