@@ -1892,6 +1892,7 @@ def display_chaos_simulation():
                 
                     # Record metrics
                     st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                    st.session_state.simulation_metrics['step'].append(step)
                     st.session_state.simulation_metrics['anomaly_score'].append(anomaly_score)
                     st.session_state.simulation_metrics['system_health'].append(system_health)
                     st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util)
@@ -2078,6 +2079,7 @@ def display_chaos_simulation():
                         
                         # Record metrics after remediation
                         st.session_state.simulation_metrics['timestamps'].append(datetime.now())
+                        st.session_state.simulation_metrics['step'].append(step)
                         st.session_state.simulation_metrics['anomaly_score'].append(anomaly_after)
                         st.session_state.simulation_metrics['system_health'].append(system_health_after)
                         st.session_state.simulation_metrics['cpu_utilization'].append(cpu_util_after)
