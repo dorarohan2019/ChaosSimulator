@@ -2107,7 +2107,16 @@ def display_chaos_simulation():
                         st.session_state.simulation_metrics['action_description'].append(remediation_description)
                         st.session_state.simulation_metrics['phase'].append("Remediation")
                         
-                        # Record remediation action
+                        # Check if remediation was successful (anomaly decreased)
+                        remediation_success = anomaly_after < anomaly_score
+                        
+                        # Show success or failure message
+                        if remediation_success:
+                            status_container.success(f"Remediation successful! Anomaly score decreased from {anomaly_score:.4f} to {anomaly_after:.4f}")
+                        else:
+                            status_container.error(f"Remediation had limited impact. Anomaly score: {anomaly_score:.4f} → {anomaly_after:.4f}")
+                        
+                        # Record remediation action (always record regardless of success)
                         st.session_state.remediation_actions.append({
                             'step': step,
                             'action': remediation_id,
@@ -2116,7 +2125,8 @@ def display_chaos_simulation():
                             'anomaly_before': anomaly_score,
                             'anomaly_after': anomaly_after,
                             'improvement': anomaly_score - anomaly_after,
-                            'timestamp': datetime.now()
+                            'timestamp': datetime.now(),
+                            'success': remediation_success  # Track success status
                         })
                         
                         # Display updated metrics
