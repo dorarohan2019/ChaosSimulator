@@ -1325,31 +1325,61 @@ def display_chaos_simulation():
                             if 'remediation_anomaly' not in locals():
                                 remediation_anomaly = pd.DataFrame()
                                 
+                            # Use Plotly for more control over marker and line styling
+                            import plotly.graph_objects as go
+                            
+                            # Create a combined figure for anomaly score
+                            fig_anomaly = go.Figure()
+                            
                             if not chaos_anomaly.empty:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                # Add custom styling to make coordinate points red regardless of line color
-                                st.markdown("""
-                                <style>
-                                /* Make all data points (circle markers) red regardless of line color */
-                                .stChart circle {
-                                    fill: red !important;
-                                    r: 4 !important; /* slightly larger radius for better visibility */
-                                }
-                                </style>
-                                """, unsafe_allow_html=True)
-                                st.line_chart(chaos_anomaly, height=150)
+                                
+                                # Add chaos data with custom styling - ORANGE/RED line with RED markers
+                                fig_anomaly.add_trace(go.Scatter(
+                                    x=chaos_anomaly.index.tolist(),
+                                    y=chaos_anomaly['Anomaly Score (Chaos)'].tolist(),
+                                    mode='lines+markers',
+                                    name='Chaos Phase',
+                                    line=dict(color='#ff3b30', width=3),
+                                    marker=dict(color='#FF0000', size=10, symbol='circle', 
+                                               line=dict(color='#8B0000', width=2))
+                                ))
                             
                             if not remediation_anomaly.empty:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                # Same styling applies to remediation phase charts
-                                st.line_chart(remediation_anomaly, height=150)
                                 
-                                # Add axis labels explanation
-                                st.markdown("""
-                                <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
-                                X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: Anomaly Score
-                                </div>
-                                """, unsafe_allow_html=True)
+                                # Add remediation data with custom styling - YELLOW line with RED markers
+                                fig_anomaly.add_trace(go.Scatter(
+                                    x=remediation_anomaly.index.tolist(),
+                                    y=remediation_anomaly['Anomaly Score (Remediation)'].tolist(),
+                                    mode='lines+markers',
+                                    name='Remediation Phase',
+                                    line=dict(color='#ffcc00', width=3),
+                                    marker=dict(color='#FF0000', size=10, symbol='circle',
+                                               line=dict(color='#8B0000', width=2))
+                                ))
+                            
+                            # Configure layout
+                            fig_anomaly.update_layout(
+                                height=200,
+                                margin=dict(l=0, r=0, t=10, b=0),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                xaxis_title="Step Number",
+                                yaxis_title="Anomaly Score",
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color="#ffffff")
+                            )
+                            
+                            # Display the figure
+                            st.plotly_chart(fig_anomaly, use_container_width=True)
+                            
+                            # Add axis labels explanation
+                            st.markdown("""
+                            <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
+                            X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: Anomaly Score
+                            </div>
+                            """, unsafe_allow_html=True)
                         
                         with col2:
                             st.subheader("System Health")
@@ -1428,31 +1458,59 @@ def display_chaos_simulation():
                             if 'remediation_health' not in locals():
                                 remediation_health = pd.DataFrame()
                                 
+                            # Use Plotly for more control over marker and line styling
+                            # Create a combined figure for system health
+                            fig_health = go.Figure()
+                            
                             if not chaos_health.empty:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                # Add custom styling to make coordinate points red regardless of line color
-                                st.markdown("""
-                                <style>
-                                /* Make all data points (circle markers) red regardless of line color */
-                                .stChart circle {
-                                    fill: red !important;
-                                    r: 4 !important; /* slightly larger radius for better visibility */
-                                }
-                                </style>
-                                """, unsafe_allow_html=True)
-                                st.line_chart(chaos_health, height=150)
+                                
+                                # Add chaos data with custom styling - GREEN line with RED markers
+                                fig_health.add_trace(go.Scatter(
+                                    x=chaos_health.index.tolist(),
+                                    y=chaos_health['System Health (Chaos)'].tolist(),
+                                    mode='lines+markers',
+                                    name='Chaos Phase',
+                                    line=dict(color='#00a651', width=3),
+                                    marker=dict(color='#FF0000', size=10, symbol='circle',
+                                               line=dict(color='#8B0000', width=2))
+                                ))
                             
                             if not remediation_health.empty:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
-                                # Same styling applies to remediation phase charts
-                                st.line_chart(remediation_health, height=150)
                                 
-                                # Add axis labels explanation
-                                st.markdown("""
-                                <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
-                                X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: System Health
-                                </div>
-                                """, unsafe_allow_html=True)
+                                # Add remediation data with custom styling - PINK line with RED markers
+                                fig_health.add_trace(go.Scatter(
+                                    x=remediation_health.index.tolist(),
+                                    y=remediation_health['System Health (Remediation)'].tolist(),
+                                    mode='lines+markers',
+                                    name='Remediation Phase',
+                                    line=dict(color='#ff69b4', width=3),
+                                    marker=dict(color='#FF0000', size=10, symbol='circle',
+                                               line=dict(color='#8B0000', width=2))
+                                ))
+                            
+                            # Configure layout
+                            fig_health.update_layout(
+                                height=200,
+                                margin=dict(l=0, r=0, t=10, b=0),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                                xaxis_title="Step Number",
+                                yaxis_title="System Health",
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color="#ffffff")
+                            )
+                            
+                            # Display the figure
+                            st.plotly_chart(fig_health, use_container_width=True)
+                            
+                            # Add axis labels explanation
+                            st.markdown("""
+                            <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
+                            X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: System Health
+                            </div>
+                            """, unsafe_allow_html=True)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
@@ -1504,10 +1562,39 @@ def display_chaos_simulation():
                     
                     # Display the unified infrastructure metrics chart with custom coloring
                     if not infra_metrics.empty:
-                        # Use the chart directly without axis labels
-                        st.line_chart(infra_metrics)
+                        # Use Plotly for more control over styling
+                        fig_infra = go.Figure()
                         
-                        # Display the chart without legend
+                        # Define a set of colors for different metrics
+                        colors = ['#4287f5', '#42f5a7', '#f542a1', '#f5d742', '#42f5f2']
+                        
+                        # Add each metric as a separate trace with custom styling
+                        for i, col in enumerate(infra_metrics.columns):
+                            color_idx = i % len(colors)
+                            fig_infra.add_trace(go.Scatter(
+                                x=infra_metrics.index.tolist(),
+                                y=infra_metrics[col].tolist(),
+                                mode='lines+markers',
+                                name=col,
+                                line=dict(color=colors[color_idx], width=2),
+                                marker=dict(color='#FF0000', size=6, symbol='circle',
+                                           line=dict(color='#8B0000', width=1))
+                            ))
+                        
+                        # Configure layout
+                        fig_infra.update_layout(
+                            height=250,
+                            margin=dict(l=0, r=0, t=10, b=0),
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            xaxis_title="Step Number",
+                            yaxis_title="Metric Value",
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color="#ffffff")
+                        )
+                        
+                        # Display the figure
+                        st.plotly_chart(fig_infra, use_container_width=True)
                         
                         # Hidden security indicators (commented out as requested by user)
                         # We track these metrics but don't show the detailed alerts
