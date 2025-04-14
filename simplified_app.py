@@ -2214,12 +2214,7 @@ def display_chaos_simulation():
                                       if action['anomaly_after'] < action['anomaly_before']) / len(st.session_state.remediation_actions) * 100
                     st.write(f"**Remediation effectiveness:** {effectiveness:.1f}%")
             
-            # Add a link to the Infrastructure Topology tab for viewing the simulation effects
-            if 'simulation_complete' in st.session_state:
-                st.info("""
-                **Note:** The simulation has updated the AWS infrastructure topology with the applied chaos and remediation actions.  
-                Visit the **Infrastructure Topology** tab to see the current state of the AWS infrastructure.
-                """)
+            # Removed the note about AWS infrastructure as requested
         
 # This is where the simulation ends
 
