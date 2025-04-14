@@ -963,7 +963,11 @@ def display_dashboard():
             <div class="progress-bar" style="width: {min(anomaly_score * 100, 100)}%; background-color: {'#00a651' if anomaly_score < 0.15 else '#ff9900' if anomaly_score < 0.3 else '#ff3b30'};"></div>
         </div>
         <p style="margin-top: 10px; color: #456; font-size: 0.9rem;">
-            System operating within normal parameters.
+            {
+            "System operating within normal parameters." if anomaly_score < 0.15 else 
+            "System experiencing minor anomalies. Monitoring closely." if anomaly_score < 0.3 else 
+            "Critical security vulnerabilities detected. Immediate action required."
+            }
         </p>
     </div>
     """, unsafe_allow_html=True)
