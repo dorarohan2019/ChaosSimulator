@@ -281,7 +281,7 @@ def display_impact_analysis():
                     for idx, row in critical_vulnerabilities.iterrows():
                         severity = "Critical" if row['anomaly_score'] > 0.8 else "High" if row['anomaly_score'] > 0.6 else "Medium"
                         step_num = row['step'] if 'step' in row else "Unknown"
-                        st.markdown(f"**Step {step_num}**: {row['description']}")
+                        st.markdown(f"**Step {str(step_num)}**: {row['description']}")
                         st.markdown(f"**Impact**: {severity} (Score: {row['anomaly_score']:.4f})")
                         # Calculate estimated system health from anomaly score (1 - anomaly_score is a good approximation)
                         est_system_health = max(0.1, 1.0 - row['anomaly_score'])
@@ -297,8 +297,8 @@ def display_impact_analysis():
                             # Find remediation for this chaos action (matching chaos_step if exists)
                             matching_remediations = []
                             for _, rem_row in remediation_df.iterrows():
-                                if ('chaos_step' in rem_row and rem_row['chaos_step'] == chaos_row['step']) or \
-                                   ('step' in rem_row and rem_row['step'] == chaos_row['step'] + 1):
+                                if ('chaos_step' in rem_row and str(rem_row['chaos_step']) == str(chaos_row['step'])) or \
+                                   ('step' in rem_row and int(rem_row['step']) == int(chaos_row['step']) + 1):
                                     matching_remediations.append(rem_row)
                             
                             if matching_remediations:
@@ -309,7 +309,7 @@ def display_impact_analysis():
                                 improvement = rem_row['improvement'] if 'improvement' in rem_row else 0
                                 effectiveness = "Excellent" if improvement > 0.7 else "Good" if improvement > 0.5 else "Fair"
                                 
-                                st.markdown(f"**Step {step_num}**: {rem_row['description']}")
+                                st.markdown(f"**Step {str(step_num)}**: {rem_row['description']}")
                                 st.markdown(f"**Effectiveness**: {effectiveness} (Improvement: {improvement:.4f})")
                                 
                                 if 'anomaly_before' in rem_row and 'anomaly_after' in rem_row:
@@ -407,7 +407,7 @@ def display_impact_analysis():
                             
                             st.markdown(f"""
                             <div style="border-left: 5px solid {effectiveness_color}; padding-left: 10px; margin-bottom: 15px;">
-                                <h4>#{i+1}: Step {step_num} {success_icon}</h4>
+                                <h4>#{i+1}: Step {str(step_num)} {success_icon}</h4>
                                 <p><strong>Action:</strong> {row['description']}</p>
                                 <p><strong>Effectiveness:</strong> {improvement:.4f} improvement ({success_text})</p>
                             </div>
@@ -418,7 +418,7 @@ def display_impact_analysis():
                         import plotly.graph_objects as go
                         
                         # Create a simple horizontal bar chart
-                        labels = [f"Step {row['step']}: {row['description'][:30]}..." for _, row in top_remediations.iterrows()]
+                        labels = [f"Step {str(row['step'])}: {row['description'][:30]}..." for _, row in top_remediations.iterrows()]
                         values = [row['improvement'] for _, row in top_remediations.iterrows()]
                         
                         # Colors based on effectiveness
