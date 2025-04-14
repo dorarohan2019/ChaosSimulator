@@ -3460,14 +3460,46 @@ def display_impact_analysis():
                 chaos_x = [idx for idx in sorted_indices if chaos_mask[idx]]
                 chaos_y = [df.iloc[idx]['system_health'] for idx in chaos_x]
                 
-                # We're not adding separate marker traces since we already have the unified green line
+                # Add red dotted markers for chaos phase system health
+                fig.add_trace(
+                    go.Scatter(
+                        x=chaos_x,
+                        y=chaos_y,
+                        mode='markers',
+                        name='Chaos Health Markers',
+                        marker=dict(
+                            color='#FF0000',
+                            size=10,
+                            symbol='circle',
+                            line=dict(color='#8B0000', width=2)
+                        ),
+                        showlegend=False
+                    ),
+                    row=2, col=1
+                )
             
             # Add Remediation Phase for System Health (bottom subplot)
             if any(remediation_mask):
                 remediation_x = [idx for idx in sorted_indices if remediation_mask[idx]]
                 remediation_y = [df.iloc[idx]['system_health'] for idx in remediation_x]
                 
-                # We're not adding separate marker traces since we already have the unified green line
+                # Add red dotted markers for remediation phase system health
+                fig.add_trace(
+                    go.Scatter(
+                        x=remediation_x,
+                        y=remediation_y,
+                        mode='markers',
+                        name='Remediation Health Markers',
+                        marker=dict(
+                            color='#FF0000',
+                            size=10,
+                            symbol='circle',
+                            line=dict(color='#8B0000', width=2)
+                        ),
+                        showlegend=False
+                    ),
+                    row=2, col=1
+                )
             
             # Update layout
             fig.update_layout(
