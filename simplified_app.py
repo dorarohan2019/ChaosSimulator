@@ -1158,6 +1158,10 @@ def display_chaos_simulation():
         def update_metrics_chart():
             # Create a dataframe from the metrics
             import pandas as pd
+            import numpy as np
+            
+            # Initialize df as empty DataFrame by default to avoid errors
+            df = pd.DataFrame()
             
             if len(st.session_state.simulation_metrics['timestamps']) > 0:
                 df = pd.DataFrame(st.session_state.simulation_metrics)
@@ -1275,9 +1279,14 @@ def display_chaos_simulation():
                                 }, index=remediation_steps)
                             
                             # Plot the anomaly score charts with custom colors and sequential indices
+                            # Initialize remediation_anomaly as empty DataFrame if not defined yet
+                            # This ensures it's always defined before being used
+                            if 'remediation_anomaly' not in locals():
+                                remediation_anomaly = pd.DataFrame()
+                                
                             if not chaos_anomaly.empty:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
-                                # Add custom styling to make coordintate points red regardless of line color
+                                # Add custom styling to make coordinate points red regardless of line color
                                 st.markdown("""
                                 <style>
                                 /* Make all data points (circle markers) red regardless of line color */
@@ -1373,6 +1382,11 @@ def display_chaos_simulation():
                                 remediation_health = pd.DataFrame()
                             
                             # Plot the system health charts with custom colors and sequential indices
+                            # Initialize remediation_health as empty DataFrame if not defined yet
+                            # This ensures it's always defined before being used
+                            if 'remediation_health' not in locals():
+                                remediation_health = pd.DataFrame()
+                                
                             if not chaos_health.empty:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
                                 # Add custom styling to make coordinate points red regardless of line color
@@ -1459,10 +1473,15 @@ def display_chaos_simulation():
                     else:
                         st.info("No infrastructure metrics data available yet. Run a simulation to generate data.")
                 
-                # Get the most recent action details
-                latest_idx = len(df) - 1
-                latest_action_type = df.iloc[latest_idx]['action_type']
-                latest_action_desc = df.iloc[latest_idx]['action_description']
+                # Get the most recent action details (if we have data)
+                if not df.empty and len(df) > 0:
+                    latest_idx = len(df) - 1
+                    latest_action_type = df.iloc[latest_idx]['action_type']
+                    latest_action_desc = df.iloc[latest_idx]['action_description']
+                else:
+                    # Default values if no data exists
+                    latest_action_type = ""
+                    latest_action_desc = ""
                 
                 # Update the infrastructure topology in session state (without displaying it)
                 # This keeps the topology updated for viewing in the Infrastructure Topology tab
@@ -1473,14 +1492,18 @@ def display_chaos_simulation():
                 
                 # Keep track of actions but don't display the full timeline
                 # Just update the most recent action in the status container
-                last_row = df.iloc[-1]
-                time_str = last_row['timestamps'].strftime("%H:%M:%S")
-                action_type = last_row['action_type']
-                action_desc = last_row['action_description']
-                
-                # Icon based on action type
-                icon = "🔴" if action_type == "Chaos" else "🟢"
-                status_container.info(f"Most recent action ({time_str}): {icon} **{action_type}**: {action_desc}")
+                if not df.empty and len(df) > 0:
+                    last_row = df.iloc[-1]
+                    time_str = last_row['timestamps'].strftime("%H:%M:%S")
+                    action_type = last_row['action_type']
+                    action_desc = last_row['action_description']
+                    
+                    # Icon based on action type
+                    icon = "🔴" if action_type == "Chaos" else "🟢"
+                    status_container.info(f"Most recent action ({time_str}): {icon} **{action_type}**: {action_desc}")
+                else:
+                    # No actions yet
+                    status_container.info("No actions performed yet. Run a simulation to get started.")
         
         # If simulation was already completed, just show the final results
         if st.session_state.simulation_complete and not st.session_state.simulation_running:
