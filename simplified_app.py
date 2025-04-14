@@ -1411,6 +1411,8 @@ def display_chaos_simulation():
                                 elif metric_key == 'cpu_utilization' or metric_key == 'memory_usage':
                                     display_name += " (%)"
                                 elif metric_key == 'service_availability':
+                                    # Scale service availability from 0-1 to 0-100 for better visibility
+                                    values = values * 100  # Convert to percentage
                                     display_name += " (%)"
                                 elif metric_key == 'network_latency' and '(ms/10)' not in display_name:
                                     display_name += " (ms)"
