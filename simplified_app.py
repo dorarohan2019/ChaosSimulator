@@ -3339,6 +3339,132 @@ def display_impact_analysis():
     # Check if simulation has been run
     if 'chaos_actions' in st.session_state and 'remediation_actions' in st.session_state and len(st.session_state.chaos_actions) > 0:
         # Simulation has been run, so analyze the impact
+        
+        # Display unified step sequence graphs for anomaly score and system health
+        st.subheader("Step Sequence Timeline Analysis")
+        
+        # Function to create unified timeline graphs
+        if len(st.session_state.simulation_metrics['timestamps']) > 0:
+            import pandas as pd
+            import numpy as np
+            import plotly.graph_objects as go
+            from plotly.subplots import make_subplots
+            
+            # Create dataframe from metrics
+            df = pd.DataFrame(st.session_state.simulation_metrics)
+            
+            # Sort by the global step number to ensure correct sequence
+            # The indices should already represent the step sequence
+            sorted_indices = sorted(range(len(df)), key=lambda x: x)
+            
+            # Create a figure with subplots (2 rows, 1 column)
+            fig = make_subplots(rows=2, cols=1, 
+                             subplot_titles=("Anomaly Score Fluctuation", "System Health Fluctuation"),
+                             vertical_spacing=0.12,
+                             shared_xaxes=True)
+            
+            # Add Anomaly Score trace - extract phase information for coloring
+            chaos_mask = (df['phase'] == 'Chaos')
+            remediation_mask = (df['phase'] == 'Remediation')
+            
+            # Add Chaos Phase for Anomaly Score (top subplot)
+            if any(chaos_mask):
+                chaos_x = [idx for idx in sorted_indices if chaos_mask[idx]]
+                chaos_y = [df.iloc[idx]['anomaly_score'] for idx in chaos_x]
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=chaos_x, y=chaos_y,
+                        mode='lines+markers',
+                        name='Chaos Phase',
+                        line=dict(color='#ff3b30', width=3),
+                        marker=dict(color='#FF0000', size=10, symbol='circle',
+                                   line=dict(color='#8B0000', width=2))
+                    ),
+                    row=1, col=1
+                )
+            
+            # Add Remediation Phase for Anomaly Score (top subplot)
+            if any(remediation_mask):
+                remediation_x = [idx for idx in sorted_indices if remediation_mask[idx]]
+                remediation_y = [df.iloc[idx]['anomaly_score'] for idx in remediation_x]
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=remediation_x, y=remediation_y,
+                        mode='lines+markers',
+                        name='Remediation Phase',
+                        line=dict(color='#ffcc00', width=3),
+                        marker=dict(color='#FF0000', size=10, symbol='circle',
+                                   line=dict(color='#8B0000', width=2))
+                    ),
+                    row=1, col=1
+                )
+            
+            # Add Chaos Phase for System Health (bottom subplot)
+            if any(chaos_mask):
+                chaos_x = [idx for idx in sorted_indices if chaos_mask[idx]]
+                chaos_y = [df.iloc[idx]['system_health'] for idx in chaos_x]
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=chaos_x, y=chaos_y,
+                        mode='lines+markers',
+                        name='Chaos Phase',
+                        line=dict(color='#00a651', width=3),
+                        marker=dict(color='#FF0000', size=10, symbol='circle',
+                                   line=dict(color='#8B0000', width=2))
+                    ),
+                    row=2, col=1
+                )
+            
+            # Add Remediation Phase for System Health (bottom subplot)
+            if any(remediation_mask):
+                remediation_x = [idx for idx in sorted_indices if remediation_mask[idx]]
+                remediation_y = [df.iloc[idx]['system_health'] for idx in remediation_x]
+                
+                fig.add_trace(
+                    go.Scatter(
+                        x=remediation_x, y=remediation_y,
+                        mode='lines+markers',
+                        name='Remediation Phase',
+                        line=dict(color='#ff69b4', width=3),
+                        marker=dict(color='#FF0000', size=10, symbol='circle',
+                                   line=dict(color='#8B0000', width=2))
+                    ),
+                    row=2, col=1
+                )
+            
+            # Update layout
+            fig.update_layout(
+                height=600,
+                margin=dict(l=10, r=10, t=50, b=10),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                plot_bgcolor='rgba(0,0,0,0)',
+                paper_bgcolor='rgba(0,0,0,0)',
+                font=dict(color="#ffffff"),
+                showlegend=True
+            )
+            
+            # Update x and y axes
+            fig.update_xaxes(title_text="Step Number", showgrid=True, gridwidth=1, gridcolor='rgba(211,211,211,0.3)')
+            fig.update_yaxes(title_text="Anomaly Score", row=1, col=1, showgrid=True, gridwidth=1, gridcolor='rgba(211,211,211,0.3)')
+            fig.update_yaxes(title_text="System Health", row=2, col=1, showgrid=True, gridwidth=1, gridcolor='rgba(211,211,211,0.3)')
+            
+            # Display the figure
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Add explanatory note
+            st.info("""
+            **Graph Interpretation:**  
+            - The top graph shows how the anomaly score fluctuates across steps.
+            - The bottom graph shows how system health changes across the same steps.
+            - Red dots represent individual data points at each step.
+            - The lines connect the dots in sequence to show the pattern over time.
+            """)
+        else:
+            st.warning("No simulation data available. Please run a simulation to see the timeline analysis.")
+        
         st.subheader("Chaos & Remediation Impact Analysis")
         
         # First, analyze chaos actions by their impact on system metrics
