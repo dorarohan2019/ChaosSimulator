@@ -676,18 +676,18 @@ def display_dashboard():
     # Add refresh button in a clean format
     col_refresh = st.columns([3, 1])
     
-    with col_refresh[1]:
-        if st.button("🔄 Refresh Metrics", help="Update all metrics with latest data"):
-            collector = MockStateCollector()
-            state = collector.collect_state()
-            st.session_state.current_state = state
-            
-            # Update metrics history
-            for key in st.session_state.metrics_history:
-                if key in state:
-                    st.session_state.metrics_history[key].append(state[key])
-                elif key == 'anomaly_score':
-                    # Generate sample anomaly score
+    # Auto-refresh metrics without button (removed as requested)
+    if True:  # Always refresh
+        collector = MockStateCollector()
+        state = collector.collect_state()
+        st.session_state.current_state = state
+        
+        # Update metrics history
+        for key in st.session_state.metrics_history:
+            if key in state:
+                st.session_state.metrics_history[key].append(state[key])
+            elif key == 'anomaly_score':
+                # Generate sample anomaly score
                     import random
                     st.session_state.metrics_history[key].append(random.uniform(0.01, 0.2))
             
