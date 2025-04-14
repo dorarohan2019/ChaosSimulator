@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.docker
     pkgs.tk
     pkgs.tcl
     pkgs.qhull

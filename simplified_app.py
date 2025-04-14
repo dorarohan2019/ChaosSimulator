@@ -10,17 +10,42 @@ import logging
 from collections import deque
 import requests  # For Slack API fallback if slack_sdk is not available
 
-# Apply global styling for chart data points
+# Apply global styling for chart data points and different chart colors
 def apply_chart_data_point_styling():
-    """Apply global styling to make chart data points consistently red"""
+    """Apply global styling to make chart data points consistently red and set different chart colors"""
     st.markdown("""
     <style>
     /* Make all chart data points (circles) red with border for better visibility */
     .stChart circle {
-        fill: red !important;
-        r: 6 !important; /* larger radius for better visibility */
-        stroke: darkred !important; /* add a border for better contrast */
-        stroke-width: 1.5 !important; /* border thickness */
+        fill: #FF0000 !important; 
+        r: 7 !important; /* larger radius for better visibility */
+        stroke: #8B0000 !important; /* dark red border */
+        stroke-width: 2 !important; /* thicker border */
+    }
+    
+    /* Custom colors for different charts */
+    /* Anomaly Score (Chaos) - Orange/Red */
+    [data-testid="StyledFullScreenFrame"] div:has(> div:contains("Anomaly Score")) .element-container:nth-of-type(2) path {
+        stroke: #ff3b30 !important;
+        stroke-width: 3 !important;
+    }
+    
+    /* Anomaly Score (Remediation) - Yellow */
+    [data-testid="StyledFullScreenFrame"] div:has(> div:contains("Anomaly Score")) .element-container:nth-of-type(3) path {
+        stroke: #ffcc00 !important;
+        stroke-width: 3 !important;
+    }
+    
+    /* System Health (Chaos) - Green */
+    [data-testid="StyledFullScreenFrame"] div:has(> div:contains("System Health")) .element-container:nth-of-type(2) path {
+        stroke: #00a651 !important;
+        stroke-width: 3 !important;
+    }
+    
+    /* System Health (Remediation) - Pink */
+    [data-testid="StyledFullScreenFrame"] div:has(> div:contains("System Health")) .element-container:nth-of-type(3) path {
+        stroke: #ff69b4 !important;
+        stroke-width: 3 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -992,7 +1017,8 @@ def display_chaos_simulation():
         st.subheader("Simulation Control")
         
         # Configuration parameters
-        num_actions = st.slider("Number of Chaos Actions", min_value=1, max_value=10, value=3)
+        num_actions = st.slider("Number of Action Pairs", min_value=1, max_value=10, value=5, 
+                               help="Each action pair includes one chaos action and one remediation action (balanced 1:1 ratio)")
         simulation_speed = st.select_slider(
             "Simulation Speed",
             options=["Very Slow", "Slow", "Medium", "Fast", "Very Fast"],
@@ -1601,7 +1627,8 @@ def display_chaos_simulation():
                 # Run the simulation steps
                 for step in range(st.session_state.current_step, num_actions):
                     st.session_state.current_step = step
-                    progress_bar.progress((step + 1) / (num_actions * 2))  # Account for both chaos and remediation steps
+                    # Update progress bar - each step counts as 1 chaos action + 1 remediation action (balanced 1:1)
+                    progress_bar.progress((step + 1) / num_actions)  # Progress relative to total action pairs
                     
                     # Step 1: Select and apply chaos action
                     chaos_action = chaos_env.select_action(st.session_state.simulation_state)
@@ -1746,8 +1773,9 @@ def display_chaos_simulation():
                         status_container.warning("Simulation ended early due to critical failure.")
                         break
                 
-                    # Step 2: Apply remediation action
-                    progress_bar.progress((step + 1.5) / (num_actions * 2))  # Halfway between steps
+                    # Step 2: Apply remediation action (ensuring 1:1 balance with chaos actions)
+                    # Update progress to show we're halfway through this action pair
+                    progress_bar.progress((step + 0.5) / num_actions)
                     
                     # Select and apply remediation action
                     remediation_action = remediation_env.select_action(next_state)
