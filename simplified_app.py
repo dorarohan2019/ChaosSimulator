@@ -10,6 +10,21 @@ import logging
 from collections import deque
 import requests  # For Slack API fallback if slack_sdk is not available
 
+# Apply global styling for chart data points
+def apply_chart_data_point_styling():
+    """Apply global styling to make chart data points consistently red"""
+    st.markdown("""
+    <style>
+    /* Make all chart data points (circles) red with border for better visibility */
+    .stChart circle {
+        fill: red !important;
+        r: 6 !important; /* larger radius for better visibility */
+        stroke: darkred !important; /* add a border for better contrast */
+        stroke-width: 1.5 !important; /* border thickness */
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Define Slack constants
 SLACK_CHANNEL_ID = "C08LJRT9VM3"  # Channel ID for posting messages
 SLACK_CHANNEL_NAME = "chaos-engineering"  # Channel name for reading history
@@ -3519,6 +3534,9 @@ def display_logs_analysis():
 def main():
     # Ensure required directories exist
     check_required_files()
+    
+    # Apply the global styling for chart data points
+    apply_chart_data_point_styling()
     
     # Initialize state for tracking models and data
     if 'current_state' not in st.session_state:
