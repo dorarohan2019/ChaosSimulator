@@ -338,13 +338,20 @@ def save_model(model_type, model_data):
 
 def load_predictive_model():
     """Load the latest trained anomaly detection model"""
+    # Only load model if it isn't already loaded and stored in session state
+    if 'anomaly_model' in st.session_state and st.session_state.model_statuses['anomaly_model'] == 'Loaded':
+        # Use cached model instead of reloading
+        return st.session_state.anomaly_model
+    
     try:
         latest_model_path = "models/anomaly_model_latest.pkl"
         if os.path.exists(latest_model_path):
             import pickle
             with open(latest_model_path, 'rb') as f:
                 model = pickle.load(f)
+            # Update session state
             st.session_state.model_statuses['anomaly_model'] = 'Loaded'
+            st.session_state.anomaly_model = model
             logger.info("Loaded anomaly detection model")
             return model
         else:
@@ -363,7 +370,9 @@ def load_predictive_model():
                 import shutil
                 shutil.copy2(latest_file, latest_model_path)
                 
+                # Update session state
                 st.session_state.model_statuses['anomaly_model'] = 'Loaded'
+                st.session_state.anomaly_model = model
                 logger.info(f"Loaded anomaly detection model from {latest_file}")
                 return model
             else:
@@ -375,6 +384,15 @@ def load_predictive_model():
 
 def load_agents():
     """Load the trained chaos and remediation agents"""
+    # Check if we already have the agents cached in session state
+    if ('chaos_env' in st.session_state and 'remediation_env' in st.session_state and
+        st.session_state.model_statuses['chaos_agent'] == 'Trained' and
+        st.session_state.model_statuses['remediation_agent'] == 'Trained'):
+        # Use cached agents instead of reloading
+        logger.debug("Using cached agent models from session state")
+        return st.session_state.chaos_env, st.session_state.remediation_env
+    
+    # Otherwise create new environments and load models
     chaos_env = MockEnvironment()
     chaos_env.is_chaos = True  # This is for chaos actions
     
@@ -444,6 +462,10 @@ def load_agents():
                 logger.info(f"Loaded remediation agent model from {latest_file}")
     except Exception as e:
         logger.error(f"Failed to load remediation agent: {str(e)}")
+    
+    # Cache the environments in session state
+    st.session_state.chaos_env = chaos_env
+    st.session_state.remediation_env = remediation_env
     
     return chaos_env, remediation_env
 
@@ -676,8 +698,14 @@ def display_dashboard():
     # Add refresh button in a clean format
     col_refresh = st.columns([3, 1])
     
-    # Auto-refresh metrics without button (removed as requested)
-    if True:  # Always refresh
+    # Auto-refresh metrics without infinite reloading
+    # Add a timestamp check to avoid constant reloading
+    if 'last_metrics_update' not in st.session_state:
+        st.session_state.last_metrics_update = time.time()
+        
+    current_time = time.time()
+    # Only update metrics every 3 seconds to avoid excessive reloading
+    if current_time - st.session_state.last_metrics_update >= 3.0:
         collector = MockStateCollector()
         state = collector.collect_state()
         st.session_state.current_state = state
@@ -690,8 +718,9 @@ def display_dashboard():
                 # Generate sample anomaly score
                     import random
                     st.session_state.metrics_history[key].append(random.uniform(0.01, 0.2))
-            
-            st.rerun()
+        
+        # Update timestamp of last metrics update
+        st.session_state.last_metrics_update = current_time
             
     with col_refresh[0]:
         st.markdown("### System State Overview")
