@@ -1110,6 +1110,8 @@ def display_chaos_simulation():
             st.session_state.chaos_actions = []
             st.session_state.remediation_actions = []
             st.session_state.current_step = 0
+            # Add a global step counter to track steps across both chaos and remediation phases
+            st.session_state.global_step_counter = 0
             
             # Initialize infrastructure topology
             if 'infra_topology' not in st.session_state:
@@ -1275,10 +1277,21 @@ def display_chaos_simulation():
                             # Plot the anomaly score charts with custom colors and sequential indices
                             if not chaos_anomaly.empty:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
+                                # Add custom styling to make coordintate points red regardless of line color
+                                st.markdown("""
+                                <style>
+                                /* Make all data points (circle markers) red regardless of line color */
+                                .stChart circle {
+                                    fill: red !important;
+                                    r: 4 !important; /* slightly larger radius for better visibility */
+                                }
+                                </style>
+                                """, unsafe_allow_html=True)
                                 st.line_chart(chaos_anomaly, height=150)
                             
                             if not remediation_anomaly.empty:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
+                                # Same styling applies to remediation phase charts
                                 st.line_chart(remediation_anomaly, height=150)
                                 
                                 # Add axis labels explanation
@@ -1291,7 +1304,7 @@ def display_chaos_simulation():
                         with col2:
                             st.subheader("System Health")
                             
-                            # Create separate dataframes with proper sequential data for each phase
+                            # Use the same global step number approach for system health charts
                             chaos_indices = []
                             remediation_indices = []
                             
@@ -1302,14 +1315,18 @@ def display_chaos_simulation():
                                 elif row['phase'] == 'Remediation':
                                     remediation_indices.append(i)
                             
-                            # Create proper sequential data for each phase
+                            # Create proper sequential data using global step numbers
                             if chaos_indices:
                                 chaos_data = []
+                                chaos_steps = []  # Use actual row indices for steps
                                 for i in chaos_indices:
                                     chaos_data.append(df.iloc[i]['system_health'])
+                                    chaos_steps.append(i)  # Global step number
+                                    
+                                # Use chaos_steps for x-axis values instead of auto-incrementing indices
                                 chaos_health = pd.DataFrame({
                                     'System Health (Chaos)': chaos_data
-                                })
+                                }, index=chaos_steps)  # This sets the x-axis values
                             else:
                                 chaos_health = pd.DataFrame()
                             
@@ -1318,13 +1335,11 @@ def display_chaos_simulation():
                                 remediation_data = []
                                 remediation_steps = []
                                 
-                                # Make a separate list of just the remediation data points
-                                # Use the actual step number from the chaos action that preceded it
-                                # This ensures the remediation chart starts at the appropriate x-axis value
+                                # Use the actual global step numbers for remediation actions
                                 for i, idx in enumerate(remediation_indices):
-                                    # Get the actual step number for proper x-axis labeling
-                                    actual_step = int(idx)  # Convert to integer to ensure whole numbers on x-axis
-                                    remediation_steps.append(actual_step)
+                                    # Get the actual step number for the global sequence
+                                    global_step = int(idx)  # Use the row index as the global step number
+                                    remediation_steps.append(global_step)
                                     remediation_data.append(df.iloc[idx]['system_health'])
                                 
                                 # Ensure the trend is correct - system health should INCREASE during remediation
@@ -1360,10 +1375,21 @@ def display_chaos_simulation():
                             # Plot the system health charts with custom colors and sequential indices
                             if not chaos_health.empty:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
+                                # Add custom styling to make coordinate points red regardless of line color
+                                st.markdown("""
+                                <style>
+                                /* Make all data points (circle markers) red regardless of line color */
+                                .stChart circle {
+                                    fill: red !important;
+                                    r: 4 !important; /* slightly larger radius for better visibility */
+                                }
+                                </style>
+                                """, unsafe_allow_html=True)
                                 st.line_chart(chaos_health, height=150)
                             
                             if not remediation_health.empty:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
+                                # Same styling applies to remediation phase charts
                                 st.line_chart(remediation_health, height=150)
                                 
                                 # Add axis labels explanation
@@ -1544,7 +1570,12 @@ def display_chaos_simulation():
                     action_id = chaos_action.item()
                     action_description = chaos_env.get_action_description(action_id)
                     
-                    status_container.info(f"Step {step+1}: Executing chaos action: {action_description}")
+                    # Use the global step counter for the chaos action
+                    global_step = st.session_state.global_step_counter
+                    status_container.info(f"Step {global_step}: Executing chaos action: {action_description}")
+                    
+                    # Increment the global step counter after recording this action
+                    st.session_state.global_step_counter += 1
                 
                     # Apply chaos action
                     next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
@@ -1685,7 +1716,12 @@ def display_chaos_simulation():
                     remediation_id = remediation_action.item()
                     remediation_description = remediation_env.get_action_description(remediation_id)
                     
-                    status_container.warning(f"Step {step+1}R: Applying remediation: {remediation_description}")
+                    # Use the global step counter for remediation action
+                    global_step = st.session_state.global_step_counter
+                    status_container.warning(f"Step {global_step}: Applying remediation: {remediation_description}")
+                    
+                    # Increment the global step counter after recording this action
+                    st.session_state.global_step_counter += 1
                     
                     # Apply remediation
                     remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
