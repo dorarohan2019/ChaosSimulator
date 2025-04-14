@@ -3363,9 +3363,27 @@ def display_impact_analysis():
                              vertical_spacing=0.12,
                              shared_xaxes=True)
             
-            # Add Anomaly Score trace - extract phase information for coloring
+            # Create one unified trace for anomaly score (all points connected by step sequence)
+            # Create two separate traces for coloring and visibility (Chaos and Remediation)
             chaos_mask = (df['phase'] == 'Chaos')
             remediation_mask = (df['phase'] == 'Remediation')
+            
+            # First, add the unified green line that connects all points
+            # Just use sorted indices to ensure points are connected in sequence
+            all_x = sorted_indices  # All sorted indices
+            all_y = [df.iloc[idx]['anomaly_score'] for idx in all_x]
+            
+            # Add Single Green Line connecting all points in sequence (top subplot)
+            fig.add_trace(
+                go.Scatter(
+                    x=all_x, y=all_y,
+                    mode='lines',
+                    name='Step Sequence',
+                    line=dict(color='#00FF00', width=2.5),
+                    showlegend=True
+                ),
+                row=1, col=1
+            )
             
             # Add Chaos Phase for Anomaly Score (top subplot)
             if any(chaos_mask):
@@ -3375,9 +3393,8 @@ def display_impact_analysis():
                 fig.add_trace(
                     go.Scatter(
                         x=chaos_x, y=chaos_y,
-                        mode='lines+markers',
+                        mode='markers',  # Only markers, no lines
                         name='Chaos Phase',
-                        line=dict(color='#ff3b30', width=3),
                         marker=dict(color='#FF0000', size=10, symbol='circle',
                                    line=dict(color='#8B0000', width=2))
                     ),
@@ -3392,14 +3409,29 @@ def display_impact_analysis():
                 fig.add_trace(
                     go.Scatter(
                         x=remediation_x, y=remediation_y,
-                        mode='lines+markers',
+                        mode='markers',  # Only markers, no lines
                         name='Remediation Phase',
-                        line=dict(color='#ffcc00', width=3),
                         marker=dict(color='#FF0000', size=10, symbol='circle',
-                                   line=dict(color='#8B0000', width=2))
+                                   line=dict(color='#ffcc00', width=2))
                     ),
                     row=1, col=1
                 )
+            
+            # Create one unified trace for system health (all points connected by step sequence)
+            all_x_health = sorted_indices  # All sorted indices
+            all_y_health = [df.iloc[idx]['system_health'] for idx in all_x_health]
+            
+            # Add Single Green Line connecting all points in sequence (bottom subplot)
+            fig.add_trace(
+                go.Scatter(
+                    x=all_x_health, y=all_y_health,
+                    mode='lines',
+                    name='Step Sequence',
+                    line=dict(color='#00FF00', width=2.5),
+                    showlegend=False  # Don't repeat in legend
+                ),
+                row=2, col=1
+            )
             
             # Add Chaos Phase for System Health (bottom subplot)
             if any(chaos_mask):
@@ -3409,11 +3441,11 @@ def display_impact_analysis():
                 fig.add_trace(
                     go.Scatter(
                         x=chaos_x, y=chaos_y,
-                        mode='lines+markers',
+                        mode='markers',  # Only markers, no lines
                         name='Chaos Phase',
-                        line=dict(color='#00a651', width=3),
                         marker=dict(color='#FF0000', size=10, symbol='circle',
-                                   line=dict(color='#8B0000', width=2))
+                                   line=dict(color='#8B0000', width=2)),
+                        showlegend=False  # Don't repeat in legend
                     ),
                     row=2, col=1
                 )
@@ -3426,11 +3458,11 @@ def display_impact_analysis():
                 fig.add_trace(
                     go.Scatter(
                         x=remediation_x, y=remediation_y,
-                        mode='lines+markers',
+                        mode='markers',  # Only markers, no lines
                         name='Remediation Phase',
-                        line=dict(color='#ff69b4', width=3),
                         marker=dict(color='#FF0000', size=10, symbol='circle',
-                                   line=dict(color='#8B0000', width=2))
+                                   line=dict(color='#ffcc00', width=2)),
+                        showlegend=False  # Don't repeat in legend
                     ),
                     row=2, col=1
                 )
@@ -3460,7 +3492,7 @@ def display_impact_analysis():
             - The top graph shows how the anomaly score fluctuates across steps.
             - The bottom graph shows how system health changes across the same steps.
             - Red dots represent individual data points at each step.
-            - The lines connect the dots in sequence to show the pattern over time.
+            - The green line connects all points in sequential order by step number to clearly visualize fluctuations.
             """)
         else:
             st.warning("No simulation data available. Please run a simulation to see the timeline analysis.")
