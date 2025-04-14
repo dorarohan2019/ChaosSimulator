@@ -2267,27 +2267,7 @@ def display_anomaly_detection():
                 time_str = row["timestamp"].strftime("%H:%M")
                 st.write(f"• {time_str}: {score:.4f} ⚠️")
     
-    # Create visual representation of anomaly distribution
-    st.subheader("Score Distribution")
-    
-    # Use histogram with two colors
-    bins = np.linspace(0, max(anomaly_scores) + 0.05, 20)
-    hist_data = np.histogram(anomaly_scores, bins=bins)
-    bin_edges = hist_data[1][:-1]  # Remove the last edge
-    bin_heights = hist_data[0]
-    bin_colors = ['blue' if edge <= threshold else 'red' for edge in bin_edges]
-    
-    # Convert to chart format
-    chart_data = {f"bin_{i}": [height if bin_colors[i] == color else 0] 
-                 for i, (height, color) in enumerate(zip(bin_heights, bin_colors)) 
-                 for color in ['blue', 'red']}
-    
-    # Display chart
-    st.write("**X-axis:** Anomaly Score Range")
-    st.write("**Y-axis:** Count of Occurrences (frequency)")
-    st.bar_chart(chart_data)
-    
-    # Add clear legend
+    # Score Distribution section removed as requested
     st.markdown("""
     <div style="display: flex; align-items: center; margin-bottom: 20px;">
         <div style="width: 20px; height: 20px; background-color: blue; margin-right: 10px;"></div>
@@ -3268,7 +3248,6 @@ def display_model_training():
                 st.json({
                     "final_loss": f"{final_loss:.4f}",
                     "val_loss": f"{val_loss:.4f}",
-                    "training_time": f"{training_mins}m {training_secs}s",
                     "anomaly_threshold": f"{max(0.05, min(0.2, best_loss * 2)):.3f}",
                     "evaluation": {
                         "accuracy": f"{accuracy:.2f}",
@@ -3324,7 +3303,6 @@ def display_model_training():
                 st.json({
                     "mean_reward": f"{mean_reward:.1f}",
                     "max_reward": f"{max_reward:.1f}",
-                    "training_time": f"{training_mins}m {training_secs}s",
                     success_key: success_value,
                     "evaluation": {
                         "average_return": f"{mean_reward * 0.9:.1f}",
