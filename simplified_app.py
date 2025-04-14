@@ -1750,11 +1750,18 @@ def display_chaos_simulation():
                     global_step = st.session_state.global_step_counter
                     status_container.info(f"Step {global_step}: Executing chaos action: {action_description}")
                     
+                    # Add a small delay to allow UI updates
+                    import time
+                    time.sleep(0.5)
+                    
                     # Increment the global step counter after recording this action
                     st.session_state.global_step_counter += 1
                 
                     # Apply chaos action
                     next_state, chaos_reward, chaos_done, chaos_info = chaos_env.step(action_id)
+                    
+                    # Add delay to let UI catch up and show the effects of the chaos action
+                    time.sleep(1.0)
                 
                     # Generate metrics for visualization using more realistic patterns
                     import random
@@ -1898,11 +1905,17 @@ def display_chaos_simulation():
                     global_step = st.session_state.global_step_counter
                     status_container.warning(f"Step {global_step}: Applying remediation: {remediation_description}")
                     
+                    # Add a small delay to allow UI updates
+                    time.sleep(0.5)
+                    
                     # Increment the global step counter after recording this action
                     st.session_state.global_step_counter += 1
                     
                     # Apply remediation
                     remediated_state, remediation_reward, remediation_done, remediation_info = remediation_env.step(remediation_id)
+                    
+                    # Add delay to let UI catch up and show the effects of the remediation action
+                    time.sleep(1.0)
                     
                     # Generate metrics after remediation using more realistic patterns
                     
@@ -3473,209 +3486,67 @@ def display_impact_analysis():
         else:
             st.warning("No simulation data available. Please run a simulation to see the timeline analysis.")
         
-        st.subheader("Chaos & Remediation Impact Analysis")
+        st.subheader("Critical Security Vulnerabilities & Remediation")
         
-        # First, analyze chaos actions by their impact on system metrics
+        # Extract data for analysis
         chaos_df = pd.DataFrame(st.session_state.chaos_actions)
         remediation_df = pd.DataFrame(st.session_state.remediation_actions) if len(st.session_state.remediation_actions) > 0 else None
         
-        # ------------------- Chaos Actions Impact -------------------
-        st.markdown("### Chaos Actions Impact")
-        
-        if not chaos_df.empty:
-            # Group by description to get average impact of each action type
-            if 'description' in chaos_df.columns:
-                # Extract the main action type from the description with more descriptive names
-                # Security-focused chaos action mapping with vulnerability-related descriptions
-                chaos_action_mapping = {
-                    "CPU": "CPU DoS Attack Simulation",
-                    "Memory": "Memory Leak Vulnerability",
-                    "Network": "Man-in-the-Middle Attack",
-                    "API": "API Authentication Bypass",
-                    "Service": "Privilege Escalation Attempt",
-                    "Instance": "EC2 Metadata Service Attack",
-                    "Termination": "Resource Access Termination",
-                    "DNS": "DNS Cache Poisoning",
-                    "Database": "SQL Injection Simulation",
-                    "Load balancer": "Load Balancer ACL Bypass",
-                    "EC2": "IAM Role Credential Exposure",
-                    "Lambda": "Function Permission Escalation",
-                    "S3": "S3 Bucket Policy Misconfiguration",
-                    "Route": "VPC Route Hijacking",
-                    "Disk": "EBS Volume Data Exfiltration",
-                    "Security": "Security Group Policy Bypass",
-                    "RDS": "Database Encryption Key Exposure",
-                    "Throttling": "API Rate Limit Bypass",
-                    "Latency": "Timing Attack Vulnerability",
-                    "Access": "Cross-Account Resource Access",
-                    "Rule": "NACL/WAF Rule Evasion",
-                    "Concurrency": "Race Condition Exploitation",
-                    "Group": "IAM Group Policy Vulnerability",
-                    "Space": "Disk Space Denial of Service"
-                }
+        # Find the critical system weaknesses and their remediation
+        if not chaos_df.empty and remediation_df is not None and not remediation_df.empty:
+            # Find the most severe chaos actions based on anomaly score
+            chaos_df = chaos_df.sort_values('anomaly_score', ascending=False)
+            
+            # Get the top 3 most critical vulnerabilities
+            critical_vulnerabilities = chaos_df.head(3)
+            
+            # Create columns for side-by-side display
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("### 🔴 Security Vulnerabilities Revealed")
+                for idx, row in critical_vulnerabilities.iterrows():
+                    severity = "Critical" if row['anomaly_score'] > 0.8 else "High" if row['anomaly_score'] > 0.6 else "Medium"
+                    step_num = row['step'] if 'step' in row else "Unknown"
+                    st.markdown(f"**Step {step_num}**: {row['description']}")
+                    st.markdown(f"**Impact**: {severity} (Score: {row['anomaly_score']:.4f})")
+                    st.markdown(f"**Risk**: System health dropped to {row['system_health']*100:.2f}%")
+                    st.markdown("---")
+            
+            with col2:
+                st.markdown("### 🟢 Security Remediation Actions")
                 
-                # Apply the detailed mapping
-                chaos_df['action_type'] = chaos_df['description'].apply(
-                    lambda x: next((chaos_action_mapping[key] for key in chaos_action_mapping.keys() 
-                                  if key.lower() in x.lower()), x.split()[0])
-                )
-                
-                # Group by action type and compute average anomaly score (impact)
-                chaos_impact = chaos_df.groupby('action_type')['anomaly_score'].mean().reset_index()
-                chaos_impact = chaos_impact.sort_values('anomaly_score', ascending=False)
-                chaos_impact.columns = ['Chaos Action', 'Impact Score']
-                
-                # Create a bar chart of chaos action impacts
-                st.write("**X-axis:** Chaos Action Type")
-                st.write("**Y-axis:** Impact Score (higher = more severe impact)")
-                st.bar_chart(chaos_impact.set_index('Chaos Action'))
-                
-                # Add a table with more detailed information
-                st.write("**Chaos Actions Ranked by Impact Severity:**")
-                
-                # Add a count column and format the score
-                detailed_chaos = chaos_df.groupby('action_type').agg({
-                    'anomaly_score': ['mean', 'max', 'count']
-                }).reset_index()
-                
-                detailed_chaos.columns = ['Action Type', 'Average Impact', 'Max Impact', 'Count']
-                detailed_chaos = detailed_chaos.sort_values('Average Impact', ascending=False)
-                
-                # Format for display
-                detailed_chaos['Average Impact'] = detailed_chaos['Average Impact'].apply(lambda x: f"{x:.4f}")
-                detailed_chaos['Max Impact'] = detailed_chaos['Max Impact'].apply(lambda x: f"{x:.4f}")
-                
-                st.table(detailed_chaos)
-            else:
-                st.warning("No detailed chaos action data available.")
+                # For each critical vulnerability, find corresponding remediation
+                for idx, chaos_row in critical_vulnerabilities.iterrows():
+                    if 'step' in chaos_row:
+                        # Find remediation for this chaos action (matching chaos_step if exists)
+                        matching_remediations = []
+                        for _, rem_row in remediation_df.iterrows():
+                            if ('chaos_step' in rem_row and rem_row['chaos_step'] == chaos_row['step']) or \
+                               ('step' in rem_row and rem_row['step'] == chaos_row['step'] + 1):
+                                matching_remediations.append(rem_row)
+                        
+                        if matching_remediations:
+                            rem_row = matching_remediations[0]  # Take the first match
+                            step_num = rem_row['step'] if 'step' in rem_row else "Unknown"
+                            
+                            # Calculate improvement metrics
+                            improvement = rem_row['improvement'] if 'improvement' in rem_row else 0
+                            effectiveness = "Excellent" if improvement > 0.7 else "Good" if improvement > 0.5 else "Fair"
+                            
+                            st.markdown(f"**Step {step_num}**: {rem_row['description']}")
+                            st.markdown(f"**Effectiveness**: {effectiveness} (Improvement: {improvement:.4f})")
+                            
+                            if 'anomaly_before' in rem_row and 'anomaly_after' in rem_row:
+                                reduction = (rem_row['anomaly_before'] - rem_row['anomaly_after']) / rem_row['anomaly_before'] * 100
+                                st.markdown(f"**Result**: Reduced anomaly by {reduction:.1f}%")
+                            st.markdown("---")
+                        else:
+                            st.markdown(f"No specific remediation found for chaos step {chaos_row['step']}")
+                    else:
+                        st.markdown("Missing step information for correlation.")
         else:
-            st.info("No chaos actions have been performed yet.")
-        
-        # ------------------- Remediation Actions Impact -------------------
-        st.markdown("### Remediation Actions Effectiveness")
-        
-        if remediation_df is not None and not remediation_df.empty:
-            # Group by description to get average effectiveness of each remediation type
-            if 'description' in remediation_df.columns and 'improvement' in remediation_df.columns:
-                # Extract the main remediation type with security-focused descriptive names
-                remediation_action_mapping = {
-                    "Scale": "Autoscaler Activation for DoS Mitigation",
-                    "Restart": "Compromised Service Restart Protocol",
-                    "Failover": "Security Failover to Hardened System",
-                    "Throttle": "Attack Surface Throttling Defense",
-                    "Rollback": "Security Patch Rollback Protocol",
-                    "Provision": "Secure Resource Provisioning",
-                    "Reconfigure": "Security Hardening Reconfiguration",
-                    "Isolate": "Threat Isolation & Containment",
-                    "Restore": "Secure Backup Restoration",
-                    "Fix": "Zero-Day Vulnerability Patching",
-                    "Increase": "Security Infrastructure Scaling",
-                    "Decrease": "Malicious Traffic Throttling",
-                    "Remove": "Compromised Component Removal",
-                    "Balance": "Attack Distribution Mitigation",
-                    "Heal": "Automated Exploit Remediation",
-                    "Auto": "AI-Driven Security Response",
-                    "Reset": "TLS/Security Session Reset",
-                    "Clean": "Malware/Backdoor Removal",
-                    "Optimize": "Security Rule Optimization",
-                    "Update": "Critical Security Update Deployment",
-                    "Patch": "CVE Vulnerability Patching",
-                    "Recover": "Post-Breach Recovery Protocol"
-                }
-                
-                # Apply the detailed mapping
-                remediation_df['remediation_type'] = remediation_df['description'].apply(
-                    lambda x: next((remediation_action_mapping[key] for key in remediation_action_mapping.keys() 
-                                  if key.lower() in x.lower()), x.split()[0])
-                )
-                
-                # Group by remediation type and compute average improvement score (effectiveness)
-                remediation_impact = remediation_df.groupby('remediation_type')['improvement'].mean().reset_index()
-                remediation_impact = remediation_impact.sort_values('improvement', ascending=False)
-                remediation_impact.columns = ['Remediation Action', 'Effectiveness Score']
-                
-                # Create a bar chart of remediation effectiveness
-                st.write("**X-axis:** Remediation Action Type")
-                st.write("**Y-axis:** Effectiveness Score (higher = more effective remediation)")
-                st.bar_chart(remediation_impact.set_index('Remediation Action'))
-                
-                # Add a table with more detailed information
-                st.write("**Remediation Actions Ranked by Effectiveness:**")
-                
-                # Add more metrics for analysis
-                detailed_remediation = remediation_df.groupby('remediation_type').agg({
-                    'improvement': ['mean', 'max', 'count'],
-                    'anomaly_before': 'mean', 
-                    'anomaly_after': 'mean'
-                }).reset_index()
-                
-                detailed_remediation.columns = ['Remediation Type', 'Avg Improvement', 'Max Improvement', 
-                                             'Count', 'Avg Anomaly Before', 'Avg Anomaly After']
-                detailed_remediation = detailed_remediation.sort_values('Avg Improvement', ascending=False)
-                
-                # Calculate effectiveness percentage
-                detailed_remediation['Effectiveness (%)'] = (detailed_remediation['Avg Improvement'] / 
-                                                         detailed_remediation['Avg Anomaly Before'] * 100)
-                
-                # Format for display
-                for col in ['Avg Improvement', 'Max Improvement', 'Avg Anomaly Before', 'Avg Anomaly After']:
-                    detailed_remediation[col] = detailed_remediation[col].apply(lambda x: f"{x:.4f}")
-                
-                detailed_remediation['Effectiveness (%)'] = detailed_remediation['Effectiveness (%)'].apply(lambda x: f"{x:.1f}%")
-                
-                # Reorder columns for better presentation
-                display_cols = ['Remediation Type', 'Count', 'Avg Improvement', 'Effectiveness (%)', 
-                              'Avg Anomaly Before', 'Avg Anomaly After']
-                st.table(detailed_remediation[display_cols])
-            else:
-                st.warning("No detailed remediation data available.")
-        else:
-            st.info("No remediation actions have been performed yet.")
-        
-        # ------------------- Correlation Analysis -------------------
-        st.markdown("### Correlation: Chaos Type vs Remediation Effectiveness")
-        
-        if remediation_df is not None and not remediation_df.empty and not chaos_df.empty:
-            # Attempt to match each remediation action with its preceding chaos action
-            # First, make sure we have the step information
-            if 'step' in remediation_df.columns and 'step' in chaos_df.columns:
-                # Create a mapping from chaos steps to action types
-                chaos_map = chaos_df.set_index('step')['action_type'].to_dict()
-                
-                # Add the corresponding chaos action to each remediation row
-                remediation_df['chaos_action'] = remediation_df['step'].map(chaos_map)
-                
-                # Group by chaos action and remediation type to see which pairs work best
-                if len(remediation_df) >= 3:  # Need at least a few points to make this meaningful
-                    correlation_df = remediation_df.groupby(['chaos_action', 'remediation_type'])['improvement'].mean().reset_index()
-                    correlation_df = correlation_df.sort_values('improvement', ascending=False)
-                    correlation_df.columns = ['Chaos Action', 'Remediation Type', 'Effectiveness']
-                    
-                    # Format for better display
-                    correlation_df['Effectiveness'] = correlation_df['Effectiveness'].apply(lambda x: f"{x:.4f}")
-                    
-                    st.write("**Most Effective Remediation Strategies by Chaos Type:**")
-                    st.table(correlation_df.head(10))  # Show top 10 most effective combinations
-                    
-                    # Create visual heatmap representation using a trick (since plotly isn't available)
-                    st.write("**Heat Map of Remediation Effectiveness:**")
-                    
-                    # Create a pivot table for the heatmap effect
-                    pivot_data = remediation_df.pivot_table(
-                        index='chaos_action', 
-                        columns='remediation_type', 
-                        values='improvement',
-                        aggfunc='mean'
-                    ).fillna(0)
-                    
-                    # Display the pivot table (as a simple version of a heatmap)
-                    st.dataframe(pivot_data.style.highlight_max(axis=1))
-                else:
-                    st.info("Not enough data points to create a meaningful correlation analysis.")
-            else:
-                st.warning("Missing step information for correlation analysis.")
-        else:
-            st.info("Need both chaos and remediation actions to create correlation analysis.")
+            st.info("Run a complete simulation to see critical vulnerabilities and their remediation.")
             
     else:
         # Simulation has not been run yet
