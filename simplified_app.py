@@ -1861,9 +1861,10 @@ def display_chaos_simulation():
                     # Delay for visualization
                     time.sleep(delay)
                     
+                    # Even if chaos_done is True, we should still do the remediation action to maintain 1:1 ratio
+                    # We'll just warn about it but continue to the remediation step
                     if chaos_done:
-                        status_container.warning("Simulation ended early due to critical failure.")
-                        break
+                        status_container.warning("Critical failure detected - continuing to remediation.")
                 
                     # Step 2: Apply remediation action (ensuring 1:1 balance with chaos actions)
                     # Update progress to show we're halfway through this action pair
@@ -2051,8 +2052,7 @@ def display_chaos_simulation():
                         time.sleep(delay)
                         
                         if remediation_done:
-                            status_container.warning("Remediation completed the simulation early.")
-                            break
+                            status_container.warning("Remediation completed the simulation for this pair.")
                         
                         # Check if this was the last iteration
                         if step == num_actions - 1:
