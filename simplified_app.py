@@ -3780,7 +3780,14 @@ def main():
             'system_health': [],
             'anomaly_score': [],
             'remediation_score': [],
-            'phase': []
+            'phase': [],
+            'cpu_utilization': [],
+            'memory_usage': [],
+            'network_latency': [],
+            'api_error_rate': [],
+            'service_availability': [],
+            'action_type': [],
+            'action_description': []
         }
     if 'chaos_actions' not in st.session_state:
         st.session_state.chaos_actions = []
