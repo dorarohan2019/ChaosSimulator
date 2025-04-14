@@ -1,3 +1,44 @@
+def safe_int_conversion(value):
+    """
+    Safely convert a value to integer, handling various formats including comma-separated strings.
+    
+    Args:
+        value: Value to convert (int, float, str)
+        
+    Returns:
+        int or None: Converted integer or None if conversion fails
+    """
+    if value is None:
+        return None
+    
+    # If it's already an integer, return it
+    if isinstance(value, int):
+        return value
+    
+    # If it's a float, convert to int
+    if isinstance(value, float):
+        return int(value)
+    
+    # If it's a string, handle different formats
+    if isinstance(value, str):
+        # If it contains commas, it might be a list of numbers - take the first one
+        if ',' in value:
+            try:
+                # Try to get the first number from the comma-separated list
+                first_num = value.split(',')[0].strip()
+                return int(float(first_num))
+            except (ValueError, IndexError):
+                return None
+        
+        # Try direct conversion
+        try:
+            return int(float(value))
+        except ValueError:
+            return None
+            
+    # For any other type, return None
+    return None
+
 def display_impact_analysis():
     """Display impact analysis of chaos and remediation actions on the system."""
     import streamlit as st
@@ -301,9 +342,9 @@ def display_impact_analysis():
                                 if ('chaos_step' in rem_row and str(rem_row['chaos_step']) == str(chaos_row['step'])) or \
                                    ('step' in rem_row and (
                                         # For single step values, do direct comparison
-                                        (not isinstance(rem_row['step'], str) and int(rem_row['step']) == int(chaos_row['step']) + 1) or
+                                        (not isinstance(rem_row['step'], str) and safe_int_conversion(rem_row['step']) == safe_int_conversion(chaos_row['step']) + 1) or
                                         # For comma-separated step values, check if any step matches
-                                        (isinstance(rem_row['step'], str) and any(int(s.strip()) == int(chaos_row['step']) + 1 for s in rem_row['step'].split(',')))
+                                        (isinstance(rem_row['step'], str) and any(safe_int_conversion(s.strip()) == safe_int_conversion(chaos_row['step']) + 1 for s in rem_row['step'].split(',')))
                                    )):
                                     matching_remediations.append(rem_row)
                             
