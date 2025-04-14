@@ -1671,7 +1671,12 @@ def display_chaos_simulation():
             
             with col2:
                 st.write("### Security Mitigations")
-                st.write(f"**Total security mitigations applied:** {len(st.session_state.remediation_actions)}")
+                # This shouldn't happen, but if it does, mark the inconsistency
+                total_remediation_actions = len(st.session_state.remediation_actions)
+                if total_remediation_actions < len(st.session_state.chaos_actions):
+                    st.warning(f"⚠️ Expected {len(st.session_state.chaos_actions)} remediation actions but found {total_remediation_actions}")
+                
+                st.write(f"**Total security mitigations applied:** {total_remediation_actions}")
                 if st.session_state.remediation_actions:
                     avg_improvement = sum(action['improvement'] for action in st.session_state.remediation_actions) / len(st.session_state.remediation_actions)
                     st.write(f"**Average security improvement:** {avg_improvement:.4f}")
