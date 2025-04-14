@@ -3576,11 +3576,27 @@ def display_impact_analysis():
             
             # Find the critical system weaknesses and their remediation
             if not chaos_df.empty and not remediation_df.empty:
-                # Find the most severe chaos actions based on anomaly score
-                chaos_df = chaos_df.sort_values('anomaly_score', ascending=False)
-                
-                # Get the top 3 most critical vulnerabilities
-                critical_vulnerabilities = chaos_df.head(3)
+                # Remove duplicate actions and aggregate their impact
+                # Group by description and calculate average anomaly scores
+                if 'description' in chaos_df.columns:
+                    # Group by description, aggregate and get unique actions with their average values
+                    agg_functions = {
+                        'anomaly_score': 'mean',
+                        'step': lambda x: ', '.join(str(i) for i in x)  # Keep all step numbers as a comma-separated string
+                    }
+                    
+                    # Group by description to remove duplicates
+                    unique_chaos_df = chaos_df.groupby('description').agg(agg_functions).reset_index()
+                    
+                    # Sort by severity (anomaly score)
+                    unique_chaos_df = unique_chaos_df.sort_values('anomaly_score', ascending=False)
+                    
+                    # Get the top 3 most critical vulnerabilities
+                    critical_vulnerabilities = unique_chaos_df.head(3)
+                else:
+                    # Fallback if description column doesn't exist
+                    chaos_df = chaos_df.sort_values('anomaly_score', ascending=False)
+                    critical_vulnerabilities = chaos_df.head(3)
                 
                 # Create columns for side-by-side display
                 col1, col2 = st.columns(2)
@@ -3682,8 +3698,19 @@ def display_impact_analysis():
             remediation_df = pd.DataFrame(st.session_state.remediation_actions)
             
             # Sort by effectiveness (improvement) and show top 3 or all if less than 3
-            if 'improvement' in remediation_df.columns:
-                top_remediations = remediation_df.sort_values(by='improvement', ascending=False).head(3)
+            if 'improvement' in remediation_df.columns and 'description' in remediation_df.columns:
+                # First, group by description to get unique remediation actions
+                agg_functions = {
+                    'improvement': 'mean',
+                    'step': lambda x: ', '.join(str(i) for i in x),
+                    'success': 'mean'  # Take average of success (0/1) to determine overall success rate
+                }
+                
+                # Group by description to consolidate duplicate actions
+                unique_remediation_df = remediation_df.groupby('description').agg(agg_functions).reset_index()
+                
+                # Get the top 3 most effective remediation actions
+                top_remediations = unique_remediation_df.sort_values(by='improvement', ascending=False).head(3)
                 
                 if len(top_remediations) > 0:
                     col1, col2 = st.columns(2)
