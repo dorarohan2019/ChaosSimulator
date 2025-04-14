@@ -1145,15 +1145,23 @@ def display_chaos_simulation():
         
         progress_bar = st.progress(0)
         
-        # Load environments
-        chaos_env, remediation_env = load_agents()
-        
-        # Mark agents as loaded/trained when simulation starts
-        if st.session_state.model_statuses['chaos_agent'] == 'Not Trained':
-            st.session_state.model_statuses['chaos_agent'] = 'Trained'
+        # Load environments only if we don't already have them in session state
+        if 'chaos_env' not in st.session_state or 'remediation_env' not in st.session_state:
+            # Only load agents once and store in session state
+            chaos_env, remediation_env = load_agents()
+            st.session_state.chaos_env = chaos_env
+            st.session_state.remediation_env = remediation_env
             
-        if st.session_state.model_statuses['remediation_agent'] == 'Not Trained':
-            st.session_state.model_statuses['remediation_agent'] = 'Trained'
+            # Mark agents as loaded/trained when simulation starts
+            if st.session_state.model_statuses['chaos_agent'] == 'Not Trained':
+                st.session_state.model_statuses['chaos_agent'] = 'Trained'
+                
+            if st.session_state.model_statuses['remediation_agent'] == 'Not Trained':
+                st.session_state.model_statuses['remediation_agent'] = 'Trained'
+        else:
+            # Use the cached environments
+            chaos_env = st.session_state.chaos_env
+            remediation_env = st.session_state.remediation_env
         
         # Initialize simulation state
         if 'simulation_state' not in st.session_state:
@@ -3760,16 +3768,26 @@ def main():
             'anomaly_score': deque(maxlen=100)
         }
     
-    # Try to load models at startup - this loads any persisted models
+    # Try to load models at startup only if they haven't been loaded already
     try:
-        # Load prediction model if it exists
-        load_predictive_model()
+        # Only load models if they aren't already loaded (prevent redundant loading)
+        if st.session_state.model_statuses['anomaly_model'] == 'Not Loaded':
+            # Load prediction model if it exists
+            load_predictive_model()
         
-        # Load agent models if they exist
-        load_agents()
+        # Only load agents if they aren't already trained
+        if (st.session_state.model_statuses['chaos_agent'] == 'Not Trained' or 
+            st.session_state.model_statuses['remediation_agent'] == 'Not Trained'):
+            # Load agent models if they exist
+            if 'chaos_env' not in st.session_state or 'remediation_env' not in st.session_state:
+                chaos_env, remediation_env = load_agents()
+                st.session_state.chaos_env = chaos_env
+                st.session_state.remediation_env = remediation_env
         
-        # Log model loading status
-        logger.info(f"Model statuses: {st.session_state.model_statuses}")
+        # Log model loading status (only once at startup)
+        if 'logged_model_status' not in st.session_state:
+            logger.info(f"Model statuses: {st.session_state.model_statuses}")
+            st.session_state.logged_model_status = True
     except Exception as e:
         logger.error(f"Error loading models at startup: {str(e)}")
         
