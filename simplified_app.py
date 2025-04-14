@@ -3441,34 +3441,14 @@ def display_impact_analysis():
                 chaos_x = [idx for idx in sorted_indices if chaos_mask[idx]]
                 chaos_y = [df.iloc[idx]['system_health'] for idx in chaos_x]
                 
-                fig.add_trace(
-                    go.Scatter(
-                        x=chaos_x, y=chaos_y,
-                        mode='markers',  # Only markers, no lines
-                        name='Chaos Phase',
-                        marker=dict(color='#FF0000', size=10, symbol='circle',
-                                   line=dict(color='#8B0000', width=2)),
-                        showlegend=False  # Don't repeat in legend
-                    ),
-                    row=2, col=1
-                )
+                # We're not adding separate marker traces since we already have the unified green line
             
             # Add Remediation Phase for System Health (bottom subplot)
             if any(remediation_mask):
                 remediation_x = [idx for idx in sorted_indices if remediation_mask[idx]]
                 remediation_y = [df.iloc[idx]['system_health'] for idx in remediation_x]
                 
-                fig.add_trace(
-                    go.Scatter(
-                        x=remediation_x, y=remediation_y,
-                        mode='markers',  # Only markers, no lines
-                        name='Remediation Phase',
-                        marker=dict(color='#FF0000', size=10, symbol='circle',
-                                   line=dict(color='#ffcc00', width=2)),
-                        showlegend=False  # Don't repeat in legend
-                    ),
-                    row=2, col=1
-                )
+                # We're not adding separate marker traces since we already have the unified green line
             
             # Update layout
             fig.update_layout(
@@ -3700,14 +3680,6 @@ def display_impact_analysis():
     else:
         # Simulation has not been run yet
         st.warning("Run a chaos simulation to see impact analysis.")
-        
-        # Show placeholder
-        st.write("### Impact Analysis (Pre-Simulation)")
-        st.write("This page will analyze the impact of different chaos actions and the effectiveness of remediation strategies.")
-        st.write("After running a simulation, you'll see:")
-        st.markdown("- **Chaos Actions Impact**: Which chaos scenarios have the most severe impact on your system")
-        st.markdown("- **Remediation Effectiveness**: Which remediation strategies work best")
-        st.markdown("- **Correlation Analysis**: Which remediation actions work best for specific chaos types")
 
 def display_logs_analysis():
     from datetime import datetime, timedelta
