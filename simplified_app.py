@@ -1594,11 +1594,10 @@ def display_chaos_simulation():
                             fig_infra.add_trace(go.Scatter(
                                 x=infra_metrics.index.tolist(),
                                 y=infra_metrics[col].tolist(),
-                                mode='lines+markers',
+                                mode='lines', # Removed "+markers" to show only lines
                                 name=col,
-                                line=dict(color=colors[color_idx], width=2),
-                                marker=dict(color='#FF0000', size=6, symbol='circle',
-                                           line=dict(color='#8B0000', width=1))
+                                line=dict(color=colors[color_idx], width=2)
+                                # Removed marker configuration entirely to keep the graph normal
                             ))
                         
                         # Configure layout
@@ -3490,14 +3489,7 @@ def display_impact_analysis():
             # Display the figure
             st.plotly_chart(fig, use_container_width=True)
             
-            # Add explanatory note
-            st.info("""
-            **Graph Interpretation:**  
-            - The top graph shows how the anomaly score fluctuates across steps.
-            - The bottom graph shows how system health changes across the same steps.
-            - Red dots represent individual data points at each step.
-            - The green line connects all points in sequential order by step number to clearly visualize fluctuations.
-            """)
+            # Removed explanatory text as requested
         else:
             st.warning("No simulation data available. Please run a simulation to see the timeline analysis.")
         
