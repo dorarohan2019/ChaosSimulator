@@ -1237,7 +1237,27 @@ def display_chaos_simulation():
             # Initialize df as empty DataFrame by default to avoid errors
             df = pd.DataFrame()
             
-            if len(st.session_state.simulation_metrics['timestamps']) > 0:
+            # Safety check: ensure all arrays in simulation_metrics have the same length
+            if 'simulation_metrics' in st.session_state and len(st.session_state.simulation_metrics) > 0:
+                # Get the length of the first array as reference
+                reference_length = len(st.session_state.simulation_metrics['timestamps'])
+                
+                # Check if any arrays have different lengths
+                unequal_keys = []
+                for key, values in st.session_state.simulation_metrics.items():
+                    if len(values) != reference_length:
+                        unequal_keys.append(f"{key}: {len(values)}")
+                
+                # If there are arrays with unequal lengths, fix them
+                if unequal_keys:
+                    st.warning(f"Fixing unequal array lengths: {', '.join(unequal_keys)}")
+                    # Truncate all arrays to the minimum length to ensure they're equal
+                    min_length = min(len(values) for values in st.session_state.simulation_metrics.values())
+                    for key in st.session_state.simulation_metrics:
+                        st.session_state.simulation_metrics[key] = st.session_state.simulation_metrics[key][:min_length]
+            
+            if 'timestamps' in st.session_state.simulation_metrics and len(st.session_state.simulation_metrics['timestamps']) > 0:
+                # Create DataFrame with verified equal-length arrays
                 df = pd.DataFrame(st.session_state.simulation_metrics)
                 # Create numerical index instead of using timestamps as index
                 df = df.reset_index(drop=True)
@@ -1311,6 +1331,9 @@ def display_chaos_simulation():
                             else:
                                 chaos_anomaly = pd.DataFrame()
                             
+                            # Initialize remediation_anomaly as empty DataFrame by default
+                            remediation_anomaly = pd.DataFrame()
+                            
                             if remediation_indices:
                                 # For remediation phase, ensure data properly shows remediation effect
                                 # The key issue is that remediation should ALWAYS show decreasing trend
@@ -1353,10 +1376,6 @@ def display_chaos_simulation():
                                 }, index=remediation_steps)
                             
                             # Plot the anomaly score charts with custom colors and sequential indices
-                            # Initialize remediation_anomaly as empty DataFrame if not defined yet
-                            # This ensures it's always defined before being used
-                            if 'remediation_anomaly' not in locals():
-                                remediation_anomaly = pd.DataFrame()
                                 
                             # Use Plotly for more control over marker and line styling
                             import plotly.graph_objects as go
@@ -1451,6 +1470,9 @@ def display_chaos_simulation():
                             else:
                                 chaos_health = pd.DataFrame()
                             
+                            # Initialize remediation_health as empty DataFrame by default
+                            remediation_health = pd.DataFrame()
+                            
                             if remediation_indices:
                                 # For remediation phase, ensure system health shows increasing trend
                                 remediation_data = []
@@ -1490,14 +1512,8 @@ def display_chaos_simulation():
                                 remediation_health = pd.DataFrame({
                                     'System Health (Remediation)': cleaned_data
                                 }, index=remediation_steps)
-                            else:
-                                remediation_health = pd.DataFrame()
                             
                             # Plot the system health charts with custom colors and sequential indices
-                            # Initialize remediation_health as empty DataFrame if not defined yet
-                            # This ensures it's always defined before being used
-                            if 'remediation_health' not in locals():
-                                remediation_health = pd.DataFrame()
                                 
                             # Use Plotly for more control over marker and line styling
                             # Create a combined figure for system health
