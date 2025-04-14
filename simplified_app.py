@@ -1334,10 +1334,14 @@ def display_chaos_simulation():
                             if not chaos_anomaly.empty:
                                 st.markdown('<div style="color:#ff3b30; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
                                 
+                                # Create sorted x-values for chaos phase to ensure proper line connection
+                                chaos_x = sorted(chaos_anomaly.index.tolist())
+                                chaos_y = [chaos_anomaly.loc[x, 'Anomaly Score (Chaos)'] for x in chaos_x]
+                                
                                 # Add chaos data with custom styling - ORANGE/RED line with RED markers
                                 fig_anomaly.add_trace(go.Scatter(
-                                    x=chaos_anomaly.index.tolist(),
-                                    y=chaos_anomaly['Anomaly Score (Chaos)'].tolist(),
+                                    x=chaos_x,
+                                    y=chaos_y,
                                     mode='lines+markers',
                                     name='Chaos Phase',
                                     line=dict(color='#ff3b30', width=3),
@@ -1348,10 +1352,14 @@ def display_chaos_simulation():
                             if not remediation_anomaly.empty:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
                                 
+                                # Create sorted x-values for remediation phase to ensure proper line connection
+                                remediation_x = sorted(remediation_anomaly.index.tolist())
+                                remediation_y = [remediation_anomaly.loc[x, 'Anomaly Score (Remediation)'] for x in remediation_x]
+                                
                                 # Add remediation data with custom styling - YELLOW line with RED markers
                                 fig_anomaly.add_trace(go.Scatter(
-                                    x=remediation_anomaly.index.tolist(),
-                                    y=remediation_anomaly['Anomaly Score (Remediation)'].tolist(),
+                                    x=remediation_x,
+                                    y=remediation_y,
                                     mode='lines+markers',
                                     name='Remediation Phase',
                                     line=dict(color='#ffcc00', width=3),
@@ -1465,10 +1473,14 @@ def display_chaos_simulation():
                             if not chaos_health.empty:
                                 st.markdown('<div style="color:#00a651; font-weight:bold;">Chaos Phase</div>', unsafe_allow_html=True)
                                 
+                                # Create sorted x-values for chaos phase to ensure proper line connection
+                                chaos_health_x = sorted(chaos_health.index.tolist())
+                                chaos_health_y = [chaos_health.loc[x, 'System Health (Chaos)'] for x in chaos_health_x]
+                                
                                 # Add chaos data with custom styling - GREEN line with RED markers
                                 fig_health.add_trace(go.Scatter(
-                                    x=chaos_health.index.tolist(),
-                                    y=chaos_health['System Health (Chaos)'].tolist(),
+                                    x=chaos_health_x,
+                                    y=chaos_health_y,
                                     mode='lines+markers',
                                     name='Chaos Phase',
                                     line=dict(color='#00a651', width=3),
@@ -1479,10 +1491,14 @@ def display_chaos_simulation():
                             if not remediation_health.empty:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
                                 
+                                # Create sorted x-values for remediation phase to ensure proper line connection
+                                remediation_health_x = sorted(remediation_health.index.tolist())
+                                remediation_health_y = [remediation_health.loc[x, 'System Health (Remediation)'] for x in remediation_health_x]
+                                
                                 # Add remediation data with custom styling - PINK line with RED markers
                                 fig_health.add_trace(go.Scatter(
-                                    x=remediation_health.index.tolist(),
-                                    y=remediation_health['System Health (Remediation)'].tolist(),
+                                    x=remediation_health_x,
+                                    y=remediation_health_y,
                                     mode='lines+markers',
                                     name='Remediation Phase',
                                     line=dict(color='#ff69b4', width=3),
