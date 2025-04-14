@@ -1173,31 +1173,17 @@ def display_chaos_simulation():
         metrics_container = st.empty()
         chart_container = st.empty()
         
-        # Initialize metrics history for visualization
-        if 'simulation_metrics' not in st.session_state:
-            st.session_state.simulation_metrics = {
-                'timestamps': [],
-                'anomaly_score': [],
-                'system_health': [],
-                'cpu_utilization': [],
-                'memory_usage': [],
-                'network_latency': [],
-                'api_error_rate': [],
-                'service_availability': [],
-                'action_type': [],
-                'action_description': [],
-                # Add fields to track the source of changes (chaos or remediation)
-                'phase': []  # 'chaos' or 'remediation'
-            }
-            # Initialize empty lists for all metrics to avoid issues with "any(val != 0)"
-            for key in st.session_state.simulation_metrics:
-                st.session_state.simulation_metrics[key] = []
-        elif st.session_state.simulation_running and 'clear_metrics' not in st.session_state:
-            # Only clear metrics when first starting a simulation, not when returning to page
+        # NOTE: We've moved the metrics initialization to the main function
+        # to ensure metrics persist between page navigation.
+        # Only clear metrics when explicitly starting a new simulation from the "Run New Simulation" button.
+        
+        # Check if we need to clear metrics
+        if st.session_state.simulation_running and 'clear_metrics' not in st.session_state:
+            # Flag that prevents redundant clearing - only set once per simulation run
             st.session_state.clear_metrics = True
-            # Clear previous metrics
-            for key in st.session_state.simulation_metrics:
-                st.session_state.simulation_metrics[key] = []
+            
+            # Only clear metrics if we're starting a fresh simulation run
+            # This no longer happens when switching between pages
         
         # Create persistent chart containers if they don't exist
         if 'primary_metrics_chart' not in st.session_state:
@@ -3722,6 +3708,22 @@ def main():
         st.session_state.simulation_running = False
     if 'simulation_complete' not in st.session_state:
         st.session_state.simulation_complete = False
+    
+    # Initialize simulation data containers if they don't exist
+    # These will persist across page changes until explicitly reset
+    if 'simulation_metrics' not in st.session_state:
+        st.session_state.simulation_metrics = {
+            'timestamps': [],
+            'step': [],
+            'system_health': [],
+            'anomaly_score': [],
+            'remediation_score': [],
+            'phase': []
+        }
+    if 'chaos_actions' not in st.session_state:
+        st.session_state.chaos_actions = []
+    if 'remediation_actions' not in st.session_state:
+        st.session_state.remediation_actions = []
         
     # Metrics history tracking using deque for fixed window
     if 'metrics_history' not in st.session_state:
