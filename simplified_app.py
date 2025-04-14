@@ -1012,6 +1012,7 @@ def display_dashboard():
 # Simulation orchestration page
 def display_chaos_simulation():
     """Display Simulation Orchestration page for running chaos and remediation simulations."""
+    import time  # Ensure time module is available in this function
     st.header("Simulation Orchestration")
     
     # Simulation control
