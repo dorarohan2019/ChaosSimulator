@@ -3511,7 +3511,9 @@ def display_impact_analysis():
                     step_num = row['step'] if 'step' in row else "Unknown"
                     st.markdown(f"**Step {step_num}**: {row['description']}")
                     st.markdown(f"**Impact**: {severity} (Score: {row['anomaly_score']:.4f})")
-                    st.markdown(f"**Risk**: System health dropped to {row['system_health']*100:.2f}%")
+                    # Calculate estimated system health from anomaly score (1 - anomaly_score is a good approximation)
+                    est_system_health = max(0.1, 1.0 - row['anomaly_score'])
+                    st.markdown(f"**Risk**: System health dropped to {est_system_health*100:.2f}%")
                     st.markdown("---")
             
             with col2:
