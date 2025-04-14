@@ -171,29 +171,56 @@ class MockStateCollector:
         ]
         
     def collect_state(self, scenario=None):
-        """Generate a synthetic state"""
+        """Generate a synthetic state with normal operating conditions by default"""
         import random
         
-        # Create a sample state dictionary with random values
+        # Create a sample state dictionary with values representing normal conditions
         state = {}
-        for key in self.metric_keys:
-            # Generate reasonable sample values for each metric
-            if 'count' in key:
-                state[key] = random.randint(1, 10)
-            elif 'cpu' in key:
-                # Return whole integer values for CPU metrics
-                state[key] = random.randint(10, 80)
-            elif 'errors' in key or 'findings' in key:
-                state[key] = random.randint(0, 5)
-            elif 'latency' in key:
-                # Return whole integer values for latency
-                state[key] = random.randint(1, 100)
-            elif 'invocations' in key or 'logins' in key:
-                # Return whole integer values for invocations and logins
-                state[key] = random.randint(10, 100)
-            else:
-                # Return whole integer values for all other metrics
-                state[key] = random.randint(10, 100)
+        
+        # If scenario is explicitly set to 'normal' or None, use normal operating conditions
+        if scenario == 'normal' or scenario is None:
+            # Initialize with baseline values for a healthy system
+            for key in self.metric_keys:
+                # Use healthy values for all metrics
+                if 'count' in key:
+                    state[key] = random.randint(3, 8)  # Reasonable number of resources
+                elif 'cpu' in key:
+                    state[key] = random.randint(15, 40)  # Moderate CPU usage (15-40%)
+                elif 'errors' in key:
+                    state[key] = random.randint(0, 2)  # Very few errors
+                elif 'latency' in key:
+                    state[key] = random.randint(5, 30)  # Good latency values
+                elif 'invocations' in key:
+                    state[key] = random.randint(20, 80)  # Normal invocation volume
+                # Explicitly handle security metrics for normal conditions
+                elif key == 'security_findings':
+                    state[key] = 0  # Zero security findings in normal state
+                elif key == 'failed_logins':
+                    state[key] = random.randint(0, 3)  # Very few failed login attempts
+                elif key == 'vulnerability_count':
+                    state[key] = random.randint(0, 2)  # Very few or no vulnerabilities
+                elif 'network' in key:
+                    state[key] = random.randint(30, 70)  # Normal network traffic
+                elif 'packet_loss' in key:
+                    state[key] = random.randint(0, 2)  # Very low packet loss
+                else:
+                    # Healthy values for other metrics
+                    state[key] = random.randint(30, 70)  # Normal range for other metrics
+        else:
+            # For any other scenario, use the original random generation
+            for key in self.metric_keys:
+                if 'count' in key:
+                    state[key] = random.randint(1, 10)
+                elif 'cpu' in key:
+                    state[key] = random.randint(10, 80)
+                elif 'errors' in key or 'findings' in key:
+                    state[key] = random.randint(0, 5)
+                elif 'latency' in key:
+                    state[key] = random.randint(1, 100)
+                elif 'invocations' in key or 'logins' in key:
+                    state[key] = random.randint(10, 100)
+                else:
+                    state[key] = random.randint(10, 100)
                 
         return state
 

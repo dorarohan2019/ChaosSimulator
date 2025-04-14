@@ -1,23 +1,23 @@
 {
   "chaos_agent": {
     "latest": {
-      "file": "models/chaos_agent_20250414_112804.pkl",
-      "timestamp": "20250414_112804",
-      "trained_date": "2025-04-14 11:28:04"
+      "file": "models/chaos_agent_20250414_145310.pkl",
+      "timestamp": "20250414_145310",
+      "trained_date": "2025-04-14 14:53:10"
     }
   },
   "remediation_agent": {
     "latest": {
-      "file": "models/remediation_agent_20250414_112928.pkl",
-      "timestamp": "20250414_112928",
-      "trained_date": "2025-04-14 11:29:28"
+      "file": "models/remediation_agent_20250414_145240.pkl",
+      "timestamp": "20250414_145240",
+      "trained_date": "2025-04-14 14:52:40"
     }
   },
   "anomaly_model": {
     "latest": {
-      "file": "models/anomaly_model_20250414_112628.pkl",
-      "timestamp": "20250414_112628",
-      "trained_date": "2025-04-14 11:26:28"
+      "file": "models/anomaly_model_20250414_145009.pkl",
+      "timestamp": "20250414_145009",
+      "trained_date": "2025-04-14 14:50:09"
     }
   }
 }
