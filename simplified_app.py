@@ -1717,11 +1717,21 @@ def display_chaos_simulation():
             
             # Restart button to allow running a new simulation
             if st.button("Run New Simulation"):
+                # Reset simulation state
                 st.session_state.simulation_complete = False
                 st.session_state.approval_requested = False
-                # Clear metrics for a fresh run
+                
+                # Clear all metrics when explicitly starting a new simulation
                 for key in st.session_state.simulation_metrics:
                     st.session_state.simulation_metrics[key] = []
+                
+                # Reset action history
+                st.session_state.chaos_actions = []
+                st.session_state.remediation_actions = []
+                
+                # Reset the clear_metrics flag so a new simulation will reset metrics
+                if 'clear_metrics' in st.session_state:
+                    del st.session_state.clear_metrics
                 st.rerun()
         
         # Active simulation loop
@@ -3547,25 +3557,40 @@ def display_impact_analysis():
                             st.markdown("---")
                         else:
                             # Generic remediation information based on the type of vulnerability
-                            st.markdown(f"**Standard Remediation Protocol:**")
+                            st.markdown(f"**Recommended Security Fix:**")
                             
-                            # Determine remediation based on vulnerability type
+                            # Tailored remediation recommendations based on vulnerability type
+                            # No "No specific remediation found" messages - always provide meaningful recommendation
                             if "SQL injection" in chaos_row['description']:
-                                st.markdown("**Input Validation & Patching**: Apply security patch and implement parameterized queries")
+                                st.markdown("**Input Validation & Parameterization**: Replace dynamic SQL with parameterized queries to prevent SQL injection attacks")
+                                st.markdown("**WAF Configuration**: Deploy web application firewall rules to detect and block SQL injection patterns")
                             elif "Authentication" in chaos_row['description']:
-                                st.markdown("**Access Control**: Implement multi-factor authentication and session validation")
+                                st.markdown("**Authentication Improvement**: Implement multi-factor authentication with secure token verification")
+                                st.markdown("**Session Hardening**: Implement strict session timeouts and device fingerprinting")
                             elif "Encryption" in chaos_row['description'] or "TLS" in chaos_row['description']:
-                                st.markdown("**Secure Configuration**: Update encryption protocols and certificate management")
+                                st.markdown("**Encryption Upgrade**: Apply TLS 1.3 with strong cipher suites and certificate rotation")
+                                st.markdown("**Key Management**: Implement proper key rotation and secure key storage")
                             elif "XSS" in chaos_row['description'] or "Cross-site" in chaos_row['description']:
-                                st.markdown("**Content Filtering**: Implement content security policy and output encoding")
+                                st.markdown("**Content Security**: Implement Content-Security-Policy headers and context-aware output encoding")
+                                st.markdown("**Input Sanitization**: Apply strict input validation and HTML sanitization libraries")
                             elif "IAM" in chaos_row['description'] or "privilege" in chaos_row['description'].lower():
-                                st.markdown("**Privilege Control**: Apply least privilege principle and access review")
+                                st.markdown("**Privilege Reduction**: Implement least privilege principle with regular access reviews")
+                                st.markdown("**Permission Monitoring**: Deploy real-time privilege escalation detection systems")
                             elif "DDoS" in chaos_row['description']:
-                                st.markdown("**Rate Limiting**: Implement traffic throttling and geographic filtering")
+                                st.markdown("**Rate Limiting**: Implement adaptive rate limiting with client reputation scoring")
+                                st.markdown("**Traffic Distribution**: Deploy anycast network with traffic scrubbing centers")
                             elif "API" in chaos_row['description']:
-                                st.markdown("**API Security**: Implement API gateway controls and token verification")
+                                st.markdown("**API Security Gateway**: Implement an API gateway with token validation and schema validation")
+                                st.markdown("**Rate Limiting**: Configure resource-specific rate limits with automated IP blocking")
+                            elif "Malware" in chaos_row['description']:
+                                st.markdown("**Malware Protection**: Deploy advanced endpoint protection with behavioral analysis")
+                                st.markdown("**Sandbox Processing**: Implement attachment/download sandboxing before user access")
+                            elif "exfiltration" in chaos_row['description'].lower():
+                                st.markdown("**Data Loss Prevention**: Implement outbound traffic inspection and data classification")
+                                st.markdown("**Encryption**: Deploy transparent data encryption for sensitive information")
                             else:
-                                st.markdown("**Security Hardening**: Apply defense-in-depth strategy with multiple controls")
+                                st.markdown("**Comprehensive Security Program**: Apply defense-in-depth strategy with layered controls")
+                                st.markdown("**Security Monitoring**: Implement real-time security event monitoring and alerting")
                             
                             st.markdown("---")
                     else:
