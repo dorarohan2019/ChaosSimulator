@@ -3656,8 +3656,80 @@ def display_impact_analysis():
                     else:
                         # This shouldn't happen with proper data
                         pass
+                        
+        # Add a section for most effective remediation actions
+        st.subheader("Most Effective Remediation Actions")
+        
+        if len(st.session_state.remediation_actions) > 0:
+            # Create a dataframe from remediation actions
+            import pandas as pd
+            remediation_df = pd.DataFrame(st.session_state.remediation_actions)
+            
+            # Sort by effectiveness (improvement) and show top 3 or all if less than 3
+            if 'improvement' in remediation_df.columns:
+                top_remediations = remediation_df.sort_values(by='improvement', ascending=False).head(3)
+                
+                if len(top_remediations) > 0:
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown("### Top Security Fixes")
+                        
+                        for i, (idx, row) in enumerate(top_remediations.iterrows()):
+                            # Calculate effectiveness and get other metrics
+                            improvement = row['improvement'] if 'improvement' in row else 0
+                            step_num = row['step'] if 'step' in row else "Unknown"
+                            success = row.get('success', True)  # Default to True if not present
+                            
+                            # Create a styled box with a colored border based on effectiveness
+                            effectiveness_color = "#4CAF50" if improvement > 0.5 else "#FFC107" if improvement > 0.3 else "#FF5722"
+                            
+                            success_icon = "✅" if success else "⚠️"
+                            success_text = "Successful" if success else "Partial success"
+                            
+                            st.markdown(f"""
+                            <div style="border-left: 5px solid {effectiveness_color}; padding-left: 10px; margin-bottom: 15px;">
+                                <h4>#{i+1}: Step {step_num} {success_icon}</h4>
+                                <p><strong>Action:</strong> {row['description']}</p>
+                                <p><strong>Effectiveness:</strong> {improvement:.4f} improvement ({success_text})</p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    with col2:
+                        # Create a bar chart of top remediation effectiveness
+                        import plotly.graph_objects as go
+                        
+                        # Create a simple horizontal bar chart
+                        labels = [f"Step {row['step']}: {row['description'][:30]}..." for _, row in top_remediations.iterrows()]
+                        values = [row['improvement'] for _, row in top_remediations.iterrows()]
+                        
+                        # Colors based on effectiveness
+                        colors = ["#4CAF50" if v > 0.5 else "#FFC107" if v > 0.3 else "#FF5722" for v in values]
+                        
+                        fig = go.Figure(go.Bar(
+                            x=values,
+                            y=labels,
+                            orientation='h',
+                            marker=dict(color=colors),
+                            text=[f"{v:.4f}" for v in values],
+                            textposition='auto'
+                        ))
+                        
+                        fig.update_layout(
+                            title="Remediation Effectiveness",
+                            xaxis_title="Improvement Score",
+                            yaxis_title="Remediation Action",
+                            height=300,
+                            margin=dict(l=20, r=20, t=40, b=20),
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                else:
+                    st.info("No effectiveness data available for remediation actions.")
+            else:
+                st.info("Remediation improvement data not available.")
         else:
-            st.info("Run a complete simulation to see critical vulnerabilities and their remediation.")
+            st.info("Run a complete simulation to see most effective remediation actions.")
             
     else:
         # Simulation has not been run yet
