@@ -1202,12 +1202,10 @@ def display_chaos_simulation():
                         with col1:
                             st.subheader("Anomaly Score")
                             
-                            # Create separate dataframes for Chaos and Remediation phases
-                            chaos_anomaly = pd.DataFrame(index=range(len(df)))
-                            remediation_anomaly = pd.DataFrame(index=range(len(df)))
+                            # Create dataframes using global step numbers for both phases
+                            # Instead of using separate counters for each phase
                             
-                            # Completely rebuild with proper phase separation
-                            # Create new dataframes with sequential indices
+                            # First identify all rows by phase with their global step numbers
                             chaos_indices = []
                             remediation_indices = []
                             
@@ -1218,30 +1216,32 @@ def display_chaos_simulation():
                                 elif row['phase'] == 'Remediation':
                                     remediation_indices.append(i)
                             
-                            # Create proper sequential data for each phase
-                            # IMPORTANT FIX: Ensure remediation data is showing decreasing trend
+                            # Create proper sequential data using global step numbers
                             if chaos_indices:
                                 chaos_data = []
+                                chaos_steps = []  # Use actual row indices for steps
                                 for i in chaos_indices:
                                     chaos_data.append(df.iloc[i]['anomaly_score'])
+                                    chaos_steps.append(i)  # Global step number
+                                
+                                # Use chaos_steps for x-axis values instead of auto-incrementing indices
                                 chaos_anomaly = pd.DataFrame({
                                     'Anomaly Score (Chaos)': chaos_data
-                                })
+                                }, index=chaos_steps)  # This sets the x-axis values
+                            else:
+                                chaos_anomaly = pd.DataFrame()
                             
                             if remediation_indices:
                                 # For remediation phase, ensure data properly shows remediation effect
-                                # The key issue is that remediation should ALWAYS show decreasing anomaly scores
+                                # The key issue is that remediation should ALWAYS show decreasing trend
                                 remediation_data = []
                                 remediation_steps = []
                                 
-                                # Make a separate list of just the remediation data points
-                                # Use the actual step number from the chaos action that preceded it
-                                # This ensures the remediation chart starts at the appropriate x-axis value
+                                # Use the actual global step numbers for remediation actions
                                 for i, idx in enumerate(remediation_indices):
-                                    # Get the actual step number - this is critical for proper x-axis labeling
-                                    # The step number will be the chaos step that preceded this remediation
-                                    actual_step = int(idx)  # Convert to integer to ensure whole numbers on x-axis
-                                    remediation_steps.append(actual_step)
+                                    # Get the actual step number for the global sequence
+                                    global_step = int(idx)  # Use the row index as the global step number
+                                    remediation_steps.append(global_step)
                                     remediation_data.append(df.iloc[idx]['anomaly_score'])
                                 
                                 # Create reverse sorted indices to ensure decreasing trend if needed
