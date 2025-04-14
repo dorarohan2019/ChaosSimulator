@@ -1235,9 +1235,13 @@ def display_chaos_simulation():
                                 remediation_steps = []
                                 
                                 # Make a separate list of just the remediation data points
+                                # Use the actual step number from the chaos action that preceded it
+                                # This ensures the remediation chart starts at the appropriate x-axis value
                                 for i, idx in enumerate(remediation_indices):
-                                    # Add sequentially - the order matters
-                                    remediation_steps.append(i)
+                                    # Get the actual step number - this is critical for proper x-axis labeling
+                                    # The step number will be the chaos step that preceded this remediation
+                                    actual_step = int(idx)  # Convert to integer to ensure whole numbers on x-axis
+                                    remediation_steps.append(actual_step)
                                     remediation_data.append(df.iloc[idx]['anomaly_score'])
                                 
                                 # Create reverse sorted indices to ensure decreasing trend if needed
@@ -1276,6 +1280,13 @@ def display_chaos_simulation():
                             if not remediation_anomaly.empty:
                                 st.markdown('<div style="color:#ffcc00; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
                                 st.line_chart(remediation_anomaly, height=150)
+                                
+                                # Add axis labels explanation
+                                st.markdown("""
+                                <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
+                                X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: Anomaly Score
+                                </div>
+                                """, unsafe_allow_html=True)
                         
                         with col2:
                             st.subheader("System Health")
@@ -1308,8 +1319,12 @@ def display_chaos_simulation():
                                 remediation_steps = []
                                 
                                 # Make a separate list of just the remediation data points
+                                # Use the actual step number from the chaos action that preceded it
+                                # This ensures the remediation chart starts at the appropriate x-axis value
                                 for i, idx in enumerate(remediation_indices):
-                                    remediation_steps.append(i)
+                                    # Get the actual step number for proper x-axis labeling
+                                    actual_step = int(idx)  # Convert to integer to ensure whole numbers on x-axis
+                                    remediation_steps.append(actual_step)
                                     remediation_data.append(df.iloc[idx]['system_health'])
                                 
                                 # Ensure the trend is correct - system health should INCREASE during remediation
@@ -1350,6 +1365,13 @@ def display_chaos_simulation():
                             if not remediation_health.empty:
                                 st.markdown('<div style="color:#ff69b4; font-weight:bold;">Remediation Phase</div>', unsafe_allow_html=True)
                                 st.line_chart(remediation_health, height=150)
+                                
+                                # Add axis labels explanation
+                                st.markdown("""
+                                <div style="font-size:0.8em; color:#666; margin-top:-15px; margin-bottom:15px;">
+                                X-axis: Step Number &nbsp;&nbsp;|&nbsp;&nbsp; Y-axis: System Health
+                                </div>
+                                """, unsafe_allow_html=True)
                     else:
                         st.info("No system metrics data available yet. Run a simulation to generate data.")
                 
