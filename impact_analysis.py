@@ -339,15 +339,13 @@ def display_impact_analysis():
                             matching_remediations = []
                             for _, rem_row in remediation_df.iterrows():
                                 # Handle both single step values and comma-separated step strings
-                                # Use string comparison for step values to avoid conversion errors
+                                # Use simple string comparison for step values to avoid conversion errors
                                 if ('chaos_step' in rem_row and str(rem_row['chaos_step']) == str(chaos_row['step'])) or \
-                                   ('step' in rem_row and (
-                                        # Completely simplified approach using only string comparison
-                                        # Convert chaos step to string and check for an exact match in either direct or
-                                        # comma-separated step values (no conversion to int needed)
-                                        (str(chaos_row['step'] if 'step' in chaos_row else '') in 
-                                        str(rem_row['step'] if 'step' in rem_row else '').replace(' ', ''))
-                                   )):
+                                   ('step' in rem_row and 
+                                        # Simple string-based matching approach
+                                        str(chaos_row['step'] if 'step' in chaos_row else '') in 
+                                        str(rem_row['step'] if 'step' in rem_row else '').replace(' ', '')
+                                    ):
                                     matching_remediations.append(rem_row)
                             
                             if matching_remediations:
