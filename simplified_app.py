@@ -3560,102 +3560,118 @@ def display_impact_analysis():
         
         st.subheader("Critical Security Vulnerabilities & Remediation")
         
-        # Extract data for analysis
-        chaos_df = pd.DataFrame(st.session_state.chaos_actions)
-        remediation_df = pd.DataFrame(st.session_state.remediation_actions) if len(st.session_state.remediation_actions) > 0 else None
-        
-        # Find the critical system weaknesses and their remediation
-        if not chaos_df.empty and remediation_df is not None and not remediation_df.empty:
-            # Find the most severe chaos actions based on anomaly score
-            chaos_df = chaos_df.sort_values('anomaly_score', ascending=False)
+        try:
+            # Extract data for analysis with proper error handling
+            import pandas as pd
             
-            # Get the top 3 most critical vulnerabilities
-            critical_vulnerabilities = chaos_df.head(3)
-            
-            # Create columns for side-by-side display
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.markdown("### 🔴 Security Vulnerabilities Revealed")
-                for idx, row in critical_vulnerabilities.iterrows():
-                    severity = "Critical" if row['anomaly_score'] > 0.8 else "High" if row['anomaly_score'] > 0.6 else "Medium"
-                    step_num = row['step'] if 'step' in row else "Unknown"
-                    st.markdown(f"**Step {step_num}**: {row['description']}")
-                    st.markdown(f"**Impact**: {severity} (Score: {row['anomaly_score']:.4f})")
-                    # Calculate estimated system health from anomaly score (1 - anomaly_score is a good approximation)
-                    est_system_health = max(0.1, 1.0 - row['anomaly_score'])
-                    st.markdown(f"**Risk**: System health dropped to {est_system_health*100:.2f}%")
-                    st.markdown("---")
-            
-            with col2:
-                st.markdown("### 🟢 Security Remediation Actions")
+            if len(st.session_state.chaos_actions) > 0:
+                chaos_df = pd.DataFrame(st.session_state.chaos_actions)
+            else:
+                chaos_df = pd.DataFrame(columns=['step', 'description', 'anomaly_score'])
                 
-                # For each critical vulnerability, find corresponding remediation
-                for idx, chaos_row in critical_vulnerabilities.iterrows():
-                    if 'step' in chaos_row:
-                        # Find remediation for this chaos action (matching chaos_step if exists)
-                        matching_remediations = []
-                        for _, rem_row in remediation_df.iterrows():
-                            if ('chaos_step' in rem_row and rem_row['chaos_step'] == chaos_row['step']) or \
-                               ('step' in rem_row and rem_row['step'] == chaos_row['step'] + 1):
-                                matching_remediations.append(rem_row)
-                        
-                        if matching_remediations:
-                            rem_row = matching_remediations[0]  # Take the first match
-                            step_num = rem_row['step'] if 'step' in rem_row else "Unknown"
+            if len(st.session_state.remediation_actions) > 0:
+                remediation_df = pd.DataFrame(st.session_state.remediation_actions)
+            else:
+                remediation_df = pd.DataFrame(columns=['step', 'description', 'improvement', 'anomaly_before', 'anomaly_after'])
+            
+            # Find the critical system weaknesses and their remediation
+            if not chaos_df.empty and not remediation_df.empty:
+                # Find the most severe chaos actions based on anomaly score
+                chaos_df = chaos_df.sort_values('anomaly_score', ascending=False)
+                
+                # Get the top 3 most critical vulnerabilities
+                critical_vulnerabilities = chaos_df.head(3)
+                
+                # Create columns for side-by-side display
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("### 🔴 Security Vulnerabilities Revealed")
+                    for idx, row in critical_vulnerabilities.iterrows():
+                        severity = "Critical" if row['anomaly_score'] > 0.8 else "High" if row['anomaly_score'] > 0.6 else "Medium"
+                        step_num = row['step'] if 'step' in row else "Unknown"
+                        st.markdown(f"**Step {step_num}**: {row['description']}")
+                        st.markdown(f"**Impact**: {severity} (Score: {row['anomaly_score']:.4f})")
+                        # Calculate estimated system health from anomaly score (1 - anomaly_score is a good approximation)
+                        est_system_health = max(0.1, 1.0 - row['anomaly_score'])
+                        st.markdown(f"**Risk**: System health dropped to {est_system_health*100:.2f}%")
+                        st.markdown("---")
+                
+                with col2:
+                    st.markdown("### 🟢 Security Remediation Actions")
+                    
+                    # For each critical vulnerability, find corresponding remediation
+                    for idx, chaos_row in critical_vulnerabilities.iterrows():
+                        if 'step' in chaos_row:
+                            # Find remediation for this chaos action (matching chaos_step if exists)
+                            matching_remediations = []
+                            for _, rem_row in remediation_df.iterrows():
+                                if ('chaos_step' in rem_row and rem_row['chaos_step'] == chaos_row['step']) or \
+                                   ('step' in rem_row and rem_row['step'] == chaos_row['step'] + 1):
+                                    matching_remediations.append(rem_row)
                             
-                            # Calculate improvement metrics
-                            improvement = rem_row['improvement'] if 'improvement' in rem_row else 0
-                            effectiveness = "Excellent" if improvement > 0.7 else "Good" if improvement > 0.5 else "Fair"
-                            
-                            st.markdown(f"**Step {step_num}**: {rem_row['description']}")
-                            st.markdown(f"**Effectiveness**: {effectiveness} (Improvement: {improvement:.4f})")
-                            
-                            if 'anomaly_before' in rem_row and 'anomaly_after' in rem_row:
-                                reduction = (rem_row['anomaly_before'] - rem_row['anomaly_after']) / rem_row['anomaly_before'] * 100
-                                st.markdown(f"**Result**: Reduced anomaly by {reduction:.1f}%")
-                            st.markdown("---")
-                        else:
-                            # Generic remediation information based on the type of vulnerability
-                            st.markdown(f"**Recommended Security Fix:**")
-                            
-                            # Tailored remediation recommendations based on vulnerability type
-                            # No "No specific remediation found" messages - always provide meaningful recommendation
-                            if "SQL injection" in chaos_row['description']:
-                                st.markdown("**Input Validation & Parameterization**: Replace dynamic SQL with parameterized queries to prevent SQL injection attacks")
-                                st.markdown("**WAF Configuration**: Deploy web application firewall rules to detect and block SQL injection patterns")
-                            elif "Authentication" in chaos_row['description']:
-                                st.markdown("**Authentication Improvement**: Implement multi-factor authentication with secure token verification")
-                                st.markdown("**Session Hardening**: Implement strict session timeouts and device fingerprinting")
-                            elif "Encryption" in chaos_row['description'] or "TLS" in chaos_row['description']:
-                                st.markdown("**Encryption Upgrade**: Apply TLS 1.3 with strong cipher suites and certificate rotation")
-                                st.markdown("**Key Management**: Implement proper key rotation and secure key storage")
-                            elif "XSS" in chaos_row['description'] or "Cross-site" in chaos_row['description']:
-                                st.markdown("**Content Security**: Implement Content-Security-Policy headers and context-aware output encoding")
-                                st.markdown("**Input Sanitization**: Apply strict input validation and HTML sanitization libraries")
-                            elif "IAM" in chaos_row['description'] or "privilege" in chaos_row['description'].lower():
-                                st.markdown("**Privilege Reduction**: Implement least privilege principle with regular access reviews")
-                                st.markdown("**Permission Monitoring**: Deploy real-time privilege escalation detection systems")
-                            elif "DDoS" in chaos_row['description']:
-                                st.markdown("**Rate Limiting**: Implement adaptive rate limiting with client reputation scoring")
-                                st.markdown("**Traffic Distribution**: Deploy anycast network with traffic scrubbing centers")
-                            elif "API" in chaos_row['description']:
-                                st.markdown("**API Security Gateway**: Implement an API gateway with token validation and schema validation")
-                                st.markdown("**Rate Limiting**: Configure resource-specific rate limits with automated IP blocking")
-                            elif "Malware" in chaos_row['description']:
-                                st.markdown("**Malware Protection**: Deploy advanced endpoint protection with behavioral analysis")
-                                st.markdown("**Sandbox Processing**: Implement attachment/download sandboxing before user access")
-                            elif "exfiltration" in chaos_row['description'].lower():
-                                st.markdown("**Data Loss Prevention**: Implement outbound traffic inspection and data classification")
-                                st.markdown("**Encryption**: Deploy transparent data encryption for sensitive information")
+                            if matching_remediations:
+                                rem_row = matching_remediations[0]  # Take the first match
+                                step_num = rem_row['step'] if 'step' in rem_row else "Unknown"
+                                
+                                # Calculate improvement metrics
+                                improvement = rem_row['improvement'] if 'improvement' in rem_row else 0
+                                effectiveness = "Excellent" if improvement > 0.7 else "Good" if improvement > 0.5 else "Fair"
+                                
+                                st.markdown(f"**Step {step_num}**: {rem_row['description']}")
+                                st.markdown(f"**Effectiveness**: {effectiveness} (Improvement: {improvement:.4f})")
+                                
+                                if 'anomaly_before' in rem_row and 'anomaly_after' in rem_row:
+                                    reduction = (rem_row['anomaly_before'] - rem_row['anomaly_after']) / rem_row['anomaly_before'] * 100
+                                    st.markdown(f"**Result**: Reduced anomaly by {reduction:.1f}%")
+                                st.markdown("---")
                             else:
-                                st.markdown("**Comprehensive Security Program**: Apply defense-in-depth strategy with layered controls")
-                                st.markdown("**Security Monitoring**: Implement real-time security event monitoring and alerting")
-                            
-                            st.markdown("---")
-                    else:
-                        # This shouldn't happen with proper data
-                        pass
+                                # Generic remediation information based on the type of vulnerability
+                                st.markdown(f"**Recommended Security Fix:**")
+                                
+                                # Tailored remediation recommendations based on vulnerability type
+                                # No "No specific remediation found" messages - always provide meaningful recommendation
+                                if "SQL injection" in chaos_row['description']:
+                                    st.markdown("**Input Validation & Parameterization**: Replace dynamic SQL with parameterized queries to prevent SQL injection attacks")
+                                    st.markdown("**WAF Configuration**: Deploy web application firewall rules to detect and block SQL injection patterns")
+                                elif "Authentication" in chaos_row['description']:
+                                    st.markdown("**Authentication Improvement**: Implement multi-factor authentication with secure token verification")
+                                    st.markdown("**Session Hardening**: Implement strict session timeouts and device fingerprinting")
+                                elif "Encryption" in chaos_row['description'] or "TLS" in chaos_row['description']:
+                                    st.markdown("**Encryption Upgrade**: Apply TLS 1.3 with strong cipher suites and certificate rotation")
+                                    st.markdown("**Key Management**: Implement proper key rotation and secure key storage")
+                                elif "XSS" in chaos_row['description'] or "Cross-site" in chaos_row['description']:
+                                    st.markdown("**Content Security**: Implement Content-Security-Policy headers and context-aware output encoding")
+                                    st.markdown("**Input Sanitization**: Apply strict input validation and HTML sanitization libraries")
+                                elif "IAM" in chaos_row['description'] or "privilege" in chaos_row['description'].lower():
+                                    st.markdown("**Privilege Reduction**: Implement least privilege principle with regular access reviews")
+                                    st.markdown("**Permission Monitoring**: Deploy real-time privilege escalation detection systems")
+                                elif "DDoS" in chaos_row['description']:
+                                    st.markdown("**Rate Limiting**: Implement adaptive rate limiting with client reputation scoring")
+                                    st.markdown("**Traffic Distribution**: Deploy anycast network with traffic scrubbing centers")
+                                elif "API" in chaos_row['description']:
+                                    st.markdown("**API Security Gateway**: Implement an API gateway with token validation and schema validation")
+                                    st.markdown("**Rate Limiting**: Configure resource-specific rate limits with automated IP blocking")
+                                elif "Malware" in chaos_row['description']:
+                                    st.markdown("**Malware Protection**: Deploy advanced endpoint protection with behavioral analysis")
+                                    st.markdown("**Sandbox Processing**: Implement attachment/download sandboxing before user access")
+                                elif "exfiltration" in chaos_row['description'].lower():
+                                    st.markdown("**Data Loss Prevention**: Implement outbound traffic inspection and data classification")
+                                    st.markdown("**Encryption**: Deploy transparent data encryption for sensitive information")
+                                else:
+                                    st.markdown("**Comprehensive Security Program**: Apply defense-in-depth strategy with layered controls")
+                                    st.markdown("**Security Monitoring**: Implement real-time security event monitoring and alerting")
+                                
+                                st.markdown("---")
+                        else:
+                            # This shouldn't happen with proper data
+                            pass
+            else:
+                st.info("Run a complete simulation to see critical system vulnerabilities and their remediation.")
+                
+        except Exception as e:
+            st.error(f"Error analyzing system vulnerabilities: {str(e)}")
+            st.info("Try running a new simulation to collect comprehensive data.")
                         
         # Add a section for most effective remediation actions
         st.subheader("Most Effective Remediation Actions")
